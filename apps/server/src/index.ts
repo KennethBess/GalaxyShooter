@@ -19,7 +19,7 @@ import { normalizeRoomCode } from "./runtime.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 
 const app = express();
-app.set("trust proxy", true);
+app.set("trust proxy", 1);
 
 const { roomManager, realtime, dispose } = await createRoomManagerFromEnv();
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
@@ -326,3 +326,4 @@ server.listen(PORT, "0.0.0.0", () => {
     realtimeMode: realtime.mode
   });
 });
+
