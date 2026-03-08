@@ -1,8 +1,17 @@
 targetScope = 'resourceGroup'
 
+@description('Base name used for all resource naming.')
+@minLength(3)
+@maxLength(20)
 param name string
+
+@description('Azure region for resource deployment.')
 param location string = resourceGroup().location
+
+@description('Tags to apply to all resources.')
 param tags object = {}
+
+@description('Web PubSub hub name used by Galaxy Shooter clients.')
 param webPubSubHubName string
 
 @description('Log Analytics workspace retention in days.')
@@ -14,9 +23,20 @@ param logRetentionDays int = 90
 @minValue(1)
 param webPubSubCapacity int = 1
 
+@description('Web PubSub SKU. Use Free_F1 for dev/test, Premium_P1 for production.')
+param webPubSubSku string = 'Free_F1'
+
+@description('Static Web App SKU. Use Free for dev/test, Standard for production.')
+@allowed(['Free', 'Standard'])
+param staticWebAppSku string = 'Free'
+
 @description('Redis Enterprise SKU name.')
 @allowed(['Balanced_B0', 'Balanced_B1', 'Balanced_B3', 'Balanced_B5', 'Balanced_B10', 'MemoryOptimized_M10', 'MemoryOptimized_M20'])
 param redisSku string = 'Balanced_B0'
+
+@description('Minimum replica count for the API container app. Use 0 for dev/test (scale to zero).')
+@minValue(0)
+param apiMinReplicas int = 0
 
 var resourceSuffix = take(uniqueString(subscription().id, resourceGroup().name, name), 6)
 var acrName = toLower('acr${replace(name, '-', '')}${resourceSuffix}')
@@ -28,7 +48,6 @@ var redisName = 'redis-${name}-${resourceSuffix}'
 var webPubSubName = 'wps-${name}-${resourceSuffix}'
 var staticWebAppName = 'swa-${name}-${resourceSuffix}'
 var apiImagePlaceholder = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-var redisConnectionString = 'rediss://:${listKeys(redisDatabase.id, redisDatabase.apiVersion).primaryKey}@${redisEnterprise.properties.hostName}:10000'
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsName
@@ -93,8 +112,8 @@ resource staticWebApp 'Microsoft.Web/staticSites@2024-11-01' = {
     'azd-service-name': 'web'
   })
   sku: {
-    name: 'Standard'
-    tier: 'Standard'
+    name: staticWebAppSku
+    tier: staticWebAppSku
   }
   properties: {}
 }
@@ -113,7 +132,7 @@ resource redisEnterprise 'Microsoft.Cache/redisEnterprise@2025-04-01' = {
   }
 }
 
-resource redisDatabase 'Microsoft.Cache/redisEnterprise/databases@2025-07-01' = {
+resource redisDatabase 'Microsoft.Cache/redisEnterprise/databases@2025-04-01' = {
   name: 'default'
   parent: redisEnterprise
   properties: {
@@ -131,7 +150,7 @@ resource webPubSub 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
   location: location
   tags: tags
   sku: {
-    name: 'Premium_P1'
+    name: webPubSubSku
     capacity: webPubSubCapacity
   }
   properties: {
@@ -160,7 +179,8 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'redis-url'
-          value: redisConnectionString
+          // Inline listKeys to avoid storing secret in a variable
+          value: 'rediss://:${listKeys(redisDatabase.id, redisDatabase.apiVersion).primaryKey}@${redisEnterprise.properties.hostName}:10000'
         }
         {
           name: 'webpubsub-connection-string'
@@ -246,7 +266,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: apiMinReplicas
         maxReplicas: 10
       }
     }
@@ -272,6 +292,7 @@ resource webPubSubHub 'Microsoft.SignalRService/webPubSub/hubs@2024-03-01' = {
   }
 }
 
+// Platform auth disabled intentionally — game API uses its own room-based auth via player IDs
 resource apiAuth 'Microsoft.App/containerApps/authConfigs@2024-03-01' = {
   name: 'current'
   parent: apiApp

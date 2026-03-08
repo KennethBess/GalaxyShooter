@@ -1,6 +1,8 @@
 targetScope = 'subscription'
 
 @description('AZD environment name.')
+@minLength(3)
+@maxLength(24)
 param environmentName string
 
 @description('Primary Azure region.')
@@ -19,8 +21,18 @@ param logRetentionDays int = 90
 param webPubSubCapacity int = 1
 
 @description('Redis Enterprise SKU name.')
-@allowed(['Balanced_B0', 'Balanced_B1', 'Balanced_B3', 'Balanced_B5', 'Balanced_B10', 'MemoryOptimized_M10', 'MemoryOptimized_M20'])
 param redisSku string = 'Balanced_B0'
+
+@description('Web PubSub SKU. Use Free_F1 for dev/test, Premium_P1 for production.')
+param webPubSubSku string = 'Free_F1'
+
+@description('Static Web App SKU. Use Free for dev/test, Standard for production.')
+@allowed(['Free', 'Standard'])
+param staticWebAppSku string = 'Free'
+
+@description('Minimum replica count for the API. Use 0 for dev/test (scale to zero).')
+@minValue(0)
+param apiMinReplicas int = 0
 
 @description('Optional tags to apply to resources.')
 param tags object = {}
@@ -46,7 +58,10 @@ module appStack './modules/app-stack.bicep' = {
     webPubSubHubName: webPubSubHubName
     logRetentionDays: logRetentionDays
     webPubSubCapacity: webPubSubCapacity
+    webPubSubSku: webPubSubSku
+    staticWebAppSku: staticWebAppSku
     redisSku: redisSku
+    apiMinReplicas: apiMinReplicas
   }
 }
 
