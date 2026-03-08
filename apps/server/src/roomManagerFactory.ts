@@ -1,11 +1,11 @@
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import { createClient } from "redis";
-import { WebSocketConnectionGateway, type ConnectionGateway } from "./connectionGateway.js";
 import { loadBackendConfig } from "./config.js";
+import { type ConnectionGateway, WebSocketConnectionGateway } from "./connectionGateway.js";
 import { InMemoryRoomDirectory, RedisRoomDirectory } from "./roomDirectory.js";
+import { RoomManager } from "./roomManager.js";
 import { InMemoryRoomMessageBus, RedisRoomMessageBus } from "./roomMessageBus.js";
 import { InMemoryRoomRepository, RedisRoomRepository } from "./roomRepository.js";
-import { RoomManager } from "./roomManager.js";
 import { RoomService } from "./roomService.js";
 import { InMemoryRoomRuntimeRegistry } from "./runtimeRegistry.js";
 import { WebPubSubConnectionGateway } from "./webPubSubConnectionGateway.js";

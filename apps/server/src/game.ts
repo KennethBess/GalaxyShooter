@@ -1,35 +1,35 @@
-import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FIRE_INTERVAL_MS, PLAYER_SPEED, TEAM_LIVES_BASE } from "../../../packages/shared/src/index.js";
 import type {
   EnemyKind,
   GameEventMessage,
   GameMode,
   PlayerSlot,
-  ShipId,
   ResultSummary,
+  ShipId,
   SnapshotState,
   StageDef
 } from "../../../packages/shared/src/index.js";
-import { BOSS_PHASES, CAMPAIGN_STAGES } from "./stages.js";
-import {
-  clamp, getStage, getStageHotStartMs, LANES, queueEvent,
-  BOSS_ENTER_Y, BOSS_WALL_MARGIN,
-  BOMB_DAMAGE_BOSS, BOMB_DAMAGE_NORMAL,
-  DIFFICULTY_EXTRA_PER_PLAYER, INVULNERABLE_AFTER_RESPAWN_MS,
-  KAMIKAZE_MIN_VY, KAMIKAZE_STATS,
-  PLAYER_CLAMP_X_MIN, PLAYER_CLAMP_X_MAX_OFFSET, PLAYER_CLAMP_Y_MIN, PLAYER_CLAMP_Y_MAX_OFFSET,
-  PLAYER_SPAWN_SPACING, PLAYER_SPAWN_Y_OFFSET,
-  SURVIVAL_BOSS_INTERVAL_MS, SURVIVAL_INITIAL_BOSS_MS, SURVIVAL_INITIAL_SPAWN_MS,
-  SURVIVAL_SPAWN_BASE_MS, SURVIVAL_SPAWN_MIN_MS, SURVIVAL_SPAWN_REDUCTION_PER_STAGE,
-  SURVIVAL_STAGE_DURATION_MS,
-  WAVE_EXTRA_SCALE, WAVE_SPACING_Y,
-  type InputState, type MatchRuntime, type RuntimePlayer
-} from "./gameTypes.js";
+import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FIRE_INTERVAL_MS, PLAYER_SPEED, TEAM_LIVES_BASE } from "../../../packages/shared/src/index.js";
 import {
   createEnemy, fireEnemy, hitPlayer, killEnemy,
   resolveCollisions, spawnPlayerVolley
 } from "./combat.js";
+import {
+  BOMB_DAMAGE_BOSS, BOMB_DAMAGE_NORMAL,
+  BOSS_ENTER_Y, BOSS_WALL_MARGIN,
+  clamp, 
+  DIFFICULTY_EXTRA_PER_PLAYER, getStage, getStageHotStartMs, INVULNERABLE_AFTER_RESPAWN_MS,
+  type InputState, 
+  KAMIKAZE_MIN_VY, KAMIKAZE_STATS,LANES, type MatchRuntime, PLAYER_CLAMP_X_MAX_OFFSET, 
+  PLAYER_CLAMP_X_MIN, PLAYER_CLAMP_Y_MAX_OFFSET,PLAYER_CLAMP_Y_MIN, 
+  PLAYER_SPAWN_SPACING, PLAYER_SPAWN_Y_OFFSET,queueEvent,type RuntimePlayer, 
+  SURVIVAL_BOSS_INTERVAL_MS, SURVIVAL_INITIAL_BOSS_MS, SURVIVAL_INITIAL_SPAWN_MS,
+  SURVIVAL_SPAWN_BASE_MS, SURVIVAL_SPAWN_MIN_MS, SURVIVAL_SPAWN_REDUCTION_PER_STAGE,
+  SURVIVAL_STAGE_DURATION_MS,
+  WAVE_EXTRA_SCALE, WAVE_SPACING_Y
+} from "./gameTypes.js";
+import { BOSS_PHASES, CAMPAIGN_STAGES } from "./stages.js";
 
-export type { MatchRuntime, InputState } from "./gameTypes.js";
+export type { InputState, MatchRuntime } from "./gameTypes.js";
 
 const processWaves = (match: MatchRuntime) => {
   if (match.mode === "campaign") {

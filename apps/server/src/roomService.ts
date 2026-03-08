@@ -1,10 +1,10 @@
 import type WebSocket from "ws";
-import { DEFAULT_SHIP_ID, MAX_PLAYERS, RECONNECT_GRACE_MS, isShipId } from "../../../packages/shared/src/index.js";
 import type { ClientMessage, OpenRoomSummary, PlayerSlot, RoomState, RoomSummary, ServerMessage, ShipId } from "../../../packages/shared/src/index.js";
+import { DEFAULT_SHIP_ID, isShipId, MAX_PLAYERS, RECONNECT_GRACE_MS } from "../../../packages/shared/src/index.js";
 import type { ConnectionGateway } from "./connectionGateway.js";
-import type { RoomDirectory } from "./roomDirectory.js";
 import { logInfo } from "./logger.js";
 import { MatchService } from "./matchService.js";
+import type { RoomDirectory } from "./roomDirectory.js";
 import type { RoomCommandEnvelope, RoomEventEnvelope, RoomMessageBus } from "./roomMessageBus.js";
 import type { RoomRepository } from "./roomRepository.js";
 import { defaultInputState, normalizeRoomCode, type RoomRuntime } from "./runtime.js";

@@ -7,7 +7,7 @@ import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
 import { InMemoryRoomRepository } from "../src/roomRepository.js";
 import { RoomService } from "../src/roomService.js";
 import { InMemoryRoomRuntimeRegistry } from "../src/runtimeRegistry.js";
-import { FakeSocket, createTestManager, flushAsync, parseMessages } from "./helpers.js";
+import { createTestManager, FakeSocket, flushAsync, parseMessages } from "./helpers.js";
 
 test("createRoom returns host room summary", async () => {
   const manager = createTestManager();

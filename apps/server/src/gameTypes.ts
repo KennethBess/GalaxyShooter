@@ -1,12 +1,12 @@
-import { GAME_WIDTH } from "../../../packages/shared/src/index.js";
 import type {
   EnemyKind,
   GameEventMessage,
   GameMode,
-  ShipId,
   ResultSummary,
+  ShipId,
   StageDef
 } from "../../../packages/shared/src/index.js";
+import { GAME_WIDTH } from "../../../packages/shared/src/index.js";
 import { CAMPAIGN_STAGES } from "./stages.js";
 
 export interface InputState {

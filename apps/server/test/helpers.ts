@@ -1,8 +1,8 @@
 import { WebSocketConnectionGateway } from "../src/connectionGateway.js";
 import { InMemoryRoomDirectory } from "../src/roomDirectory.js";
+import { RoomManager } from "../src/roomManager.js";
 import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
 import { InMemoryRoomRepository } from "../src/roomRepository.js";
-import { RoomManager } from "../src/roomManager.js";
 import { RoomService } from "../src/roomService.js";
 import { InMemoryRoomRuntimeRegistry } from "../src/runtimeRegistry.js";
 

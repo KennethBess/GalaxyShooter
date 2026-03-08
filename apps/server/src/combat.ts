@@ -1,21 +1,21 @@
-import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "../../../packages/shared/src/index.js";
 import type { EnemyKind } from "../../../packages/shared/src/index.js";
-import { BOSS_PHASES, CAMPAIGN_STAGES } from "./stages.js";
+import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "../../../packages/shared/src/index.js";
 import {
   BOSS_FIRE_COOLDOWN_MS, BOSS_HP_BASE, BOSS_INITIAL_VX, BOSS_INITIAL_VY, BOSS_RADIUS, BOSS_SPAWN_Y,
   clamp, distanceSq,
   ENEMY_BULLET_RADIUS_LARGE, ENEMY_BULLET_RADIUS_SMALL, ENEMY_BULLET_SPEED_BASE, ENEMY_BULLET_SPEED_HEAVY,
   ENEMY_DRIFT_SPEED, ENEMY_SPAWN_Y,
-  FIGHTER_FIRE_COOLDOWN_MS, FIGHTER_STATS, HEAVY_FIRE_COOLDOWN_MS, HEAVY_STATS,
-  getStage, getStageHotStartMs,
-  KAMIKAZE_STATS, LANES, nextId,
+  FIGHTER_FIRE_COOLDOWN_MS, FIGHTER_STATS, 
+  getStage, getStageHotStartMs,HEAVY_FIRE_COOLDOWN_MS, HEAVY_STATS,
+  KAMIKAZE_STATS, LANES, 
+  type MatchRuntime, nextId,
   PICKUP_BOSS_DROP_SPEED, PICKUP_COLLECT_RADIUS, PICKUP_DROP_SPEED,
   PLAYER_BULLET_DAMAGE, PLAYER_BULLET_OFFSET_Y, PLAYER_BULLET_RADIUS, PLAYER_BULLET_SPEED,
-  PLAYER_HITBOX_RADIUS, queueEvent,
+  PLAYER_HITBOX_RADIUS, queueEvent,type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer, 
   SCORE_BOSS, SCORE_FIGHTER, SCORE_HEAVY,
-  SURVIVAL_BOSS_INTERVAL_MS,
-  type MatchRuntime, type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer
+  SURVIVAL_BOSS_INTERVAL_MS
 } from "./gameTypes.js";
+import { BOSS_PHASES, CAMPAIGN_STAGES } from "./stages.js";
 
 export const createEnemy = (match: MatchRuntime, kind: EnemyKind, lane: number, waveId: string, boss = false): RuntimeEnemy => {
   if (boss) {

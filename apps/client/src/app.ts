@@ -1,8 +1,8 @@
-import { DEFAULT_SHIP_ID, ROOM_CODE_LENGTH, SHIP_OPTIONS, type GameMode, type OpenRoomSummary, type ResultSummary, type RoomState, type ServerMessage, type ShipId, type SnapshotState } from "@shared/index";
+import { DEFAULT_SHIP_ID, type GameMode, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
 import { createRoom, joinRoom, listOpenRooms } from "./api";
 import { RoomConnection } from "./network";
 import { createGame } from "./phaser/game";
-import { clearSession, loadScores, loadSession, loadSettings, saveScore, saveSession, saveSettings, type StoredSession } from "./storage";
+import { clearSession, loadScores, loadSession, loadSettings, type StoredSession, saveScore, saveSession, saveSettings } from "./storage";
 import { heroBannerSvg, shipLabel, shipPreviewSvg } from "./templates";
 
 interface AppState {

@@ -1,6 +1,6 @@
-import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH, PLAYER_SPEED, SHIP_OPTIONS, type EnemyKind, type ShipId } from "@shared/index";
 import type { SnapshotState } from "@shared/index";
+import { type EnemyKind, GAME_HEIGHT, GAME_WIDTH, PLAYER_SPEED, SHIP_OPTIONS, type ShipId } from "@shared/index";
+import Phaser from "phaser";
 
 interface InputState {
   up: boolean;
