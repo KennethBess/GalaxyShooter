@@ -1,5 +1,5 @@
 import type { InputState, SnapshotState } from "@shared/index";
-import { type EnemyKind, GAME_HEIGHT, GAME_WIDTH, PLAYER_SPEED, SHIP_OPTIONS, type ShipId } from "@shared/index";
+import { DRIFT_LERP_THRESHOLD, DRIFT_SNAP_THRESHOLD, type EnemyKind, GAME_HEIGHT, GAME_WIDTH, LERP_FACTOR_MAX, LERP_FACTOR_MIN, LERP_SPEED_FACTOR, PLAYER_CLAMP_X_MAX_OFFSET, PLAYER_CLAMP_X_MIN, PLAYER_CLAMP_Y_MAX_OFFSET, PLAYER_CLAMP_Y_MIN, PLAYER_SPEED, SHIP_OPTIONS, type ShipId } from "@shared/index";
 import Phaser from "phaser";
 
 interface GameController {
@@ -355,13 +355,13 @@ class GameScene extends Phaser.Scene {
     }
 
     const length = Math.hypot(dx, dy) || 1;
-    const nextX = Phaser.Math.Clamp(sprite.x + ((dx / length) * PLAYER_SPEED * deltaMs) / 1000, 40, GAME_WIDTH - 40);
-    const nextY = Phaser.Math.Clamp(sprite.y + ((dy / length) * PLAYER_SPEED * deltaMs) / 1000, 80, GAME_HEIGHT - 40);
+    const nextX = Phaser.Math.Clamp(sprite.x + ((dx / length) * PLAYER_SPEED * deltaMs) / 1000, PLAYER_CLAMP_X_MIN, GAME_WIDTH - PLAYER_CLAMP_X_MAX_OFFSET);
+    const nextY = Phaser.Math.Clamp(sprite.y + ((dy / length) * PLAYER_SPEED * deltaMs) / 1000, PLAYER_CLAMP_Y_MIN, GAME_HEIGHT - PLAYER_CLAMP_Y_MAX_OFFSET);
     sprite.setPosition(nextX, nextY);
   }
 
   private interpolateSprites(deltaMs: number) {
-    const factor = Phaser.Math.Clamp((deltaMs / 1000) * 18, 0.18, 0.42);
+    const factor = Phaser.Math.Clamp((deltaMs / 1000) * LERP_SPEED_FACTOR, LERP_FACTOR_MIN, LERP_FACTOR_MAX);
 
     for (const [playerId, sprite] of this.players) {
       const movingSelf = playerId === this.selfPlayerId && (this.inputState.left || this.inputState.right || this.inputState.up || this.inputState.down);
@@ -369,9 +369,9 @@ class GameScene extends Phaser.Scene {
       if (movingSelf) {
         if (target) {
           const drift = Phaser.Math.Distance.Between(sprite.x, sprite.y, target.x, target.y);
-          if (drift > 220) {
+          if (drift > DRIFT_SNAP_THRESHOLD) {
             sprite.setPosition(target.x, target.y);
-          } else if (drift > 96) {
+          } else if (drift > DRIFT_LERP_THRESHOLD) {
             sprite.x = Phaser.Math.Linear(sprite.x, target.x, 0.12);
             sprite.y = Phaser.Math.Linear(sprite.y, target.y, 0.12);
           }

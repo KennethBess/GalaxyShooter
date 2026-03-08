@@ -7,7 +7,13 @@ import type {
   ShipId,
   StageDef
 } from "../../../packages/shared/src/index.js";
-import { GAME_WIDTH } from "../../../packages/shared/src/index.js";
+import {
+  GAME_WIDTH,
+  PLAYER_CLAMP_X_MAX_OFFSET,
+  PLAYER_CLAMP_X_MIN,
+  PLAYER_CLAMP_Y_MAX_OFFSET,
+  PLAYER_CLAMP_Y_MIN
+} from "../../../packages/shared/src/index.js";
 import { CAMPAIGN_STAGES } from "./stages.js";
 
 export type { InputState };
@@ -137,10 +143,7 @@ export const PLAYER_HITBOX_RADIUS = 16;
 export const INVULNERABLE_AFTER_RESPAWN_MS = 1200;
 export const PLAYER_SPAWN_Y_OFFSET = 110;
 export const PLAYER_SPAWN_SPACING = 70;
-export const PLAYER_CLAMP_X_MIN = 40;
-export const PLAYER_CLAMP_X_MAX_OFFSET = 40;
-export const PLAYER_CLAMP_Y_MIN = 80;
-export const PLAYER_CLAMP_Y_MAX_OFFSET = 40;
+export { PLAYER_CLAMP_X_MIN, PLAYER_CLAMP_X_MAX_OFFSET, PLAYER_CLAMP_Y_MIN, PLAYER_CLAMP_Y_MAX_OFFSET };
 export const BOMB_DAMAGE_BOSS = 35;
 export const BOMB_DAMAGE_NORMAL = 999;
 export const KAMIKAZE_MIN_VY = 180;

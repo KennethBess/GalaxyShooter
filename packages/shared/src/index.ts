@@ -9,6 +9,19 @@ export const TEAM_LIVES_BASE = 6;
 export const RECONNECT_GRACE_MS = 15000;
 export const ROOM_CODE_LENGTH = 5;
 
+// Movement clamp bounds (shared between client and server)
+export const PLAYER_CLAMP_X_MIN = 40;
+export const PLAYER_CLAMP_X_MAX_OFFSET = 40;
+export const PLAYER_CLAMP_Y_MIN = 80;
+export const PLAYER_CLAMP_Y_MAX_OFFSET = 40;
+
+// Client interpolation constants
+export const DRIFT_SNAP_THRESHOLD = 220;
+export const DRIFT_LERP_THRESHOLD = 96;
+export const LERP_SPEED_FACTOR = 18;
+export const LERP_FACTOR_MIN = 0.18;
+export const LERP_FACTOR_MAX = 0.42;
+
 export const SHIP_IDS = ["azure", "crimson", "emerald"] as const;
 export type ShipId = (typeof SHIP_IDS)[number];
 export const DEFAULT_SHIP_ID: ShipId = "azure";
