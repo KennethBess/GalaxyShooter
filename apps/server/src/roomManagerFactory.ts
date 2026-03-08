@@ -29,7 +29,9 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
   const config = loadBackendConfig();
   const runtimeRegistry = new InMemoryRoomRuntimeRegistry();
   const webPubSubServiceClient = config.webPubSubConnectionString
-    ? new WebPubSubServiceClient(config.webPubSubConnectionString, config.webPubSubHub)
+    ? new WebPubSubServiceClient(config.webPubSubConnectionString, config.webPubSubHub, {
+        retryOptions: { maxRetries: 0 }
+      })
     : undefined;
   const realtime: RealtimeModeConfig = webPubSubServiceClient
     ? {

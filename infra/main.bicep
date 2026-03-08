@@ -23,16 +23,16 @@ param webPubSubCapacity int = 1
 @description('Redis Enterprise SKU name.')
 param redisSku string = 'Balanced_B0'
 
-@description('Web PubSub SKU. Use Free_F1 for dev/test, Premium_P1 for production.')
-param webPubSubSku string = 'Free_F1'
+@description('Web PubSub SKU. Use Standard_S1 for gameplay (Free_F1 exhausts 20K msg/day in ~3 min).')
+param webPubSubSku string = 'Standard_S1'
 
 @description('Static Web App SKU. Use Free for dev/test, Standard for production.')
 @allowed(['Free', 'Standard'])
 param staticWebAppSku string = 'Standard'
 
-@description('Minimum replica count for the API. Use 0 for dev/test (scale to zero).')
+@description('Minimum replica count for the API. Set >= 1 to avoid cold-start disconnections.')
 @minValue(0)
-param apiMinReplicas int = 0
+param apiMinReplicas int = 1
 
 @description('Optional tags to apply to resources.')
 param tags object = {}

@@ -13,6 +13,8 @@ import type { RoomRuntimeRegistry } from "./runtimeRegistry.js";
 export class RoomService {
   private readonly ownedRooms = new Set<string>();
   private lastLeaseRenewalMs = 0;
+  private readonly broadcastInFlight = new Set<string>();
+  private readonly pendingBroadcast = new Map<string, { roomCode: string; messages: readonly ServerMessage[] }>();
 
   constructor(
     private readonly repository: RoomRepository,
@@ -226,7 +228,7 @@ export class RoomService {
         const messages = this.matches.tick(state, runtime, deltaMs);
         if (messages.length > 0) {
           await this.repository.save(state);
-          await this.emitDistributed(state.roomCode, messages);
+          this.scheduleBroadcast(state.roomCode, messages);
         }
       } catch (error) {
         logError("Tick failed for room", error, { roomCode });
@@ -444,6 +446,32 @@ export class RoomService {
       originInstanceId: this.instanceId,
       messages: [...messages]
     });
+  }
+
+  /** Fire-and-forget broadcast with latest-wins: if a broadcast is already in flight for a room, the newest messages replace any queued ones. */
+  private scheduleBroadcast(roomCode: string, messages: readonly ServerMessage[]) {
+    this.pendingBroadcast.set(roomCode, { roomCode, messages });
+    if (this.broadcastInFlight.has(roomCode)) {
+      return;
+    }
+    void this.drainBroadcast(roomCode);
+  }
+
+  private async drainBroadcast(roomCode: string) {
+    this.broadcastInFlight.add(roomCode);
+    try {
+      while (this.pendingBroadcast.has(roomCode)) {
+        const { messages } = this.pendingBroadcast.get(roomCode)!;
+        this.pendingBroadcast.delete(roomCode);
+        try {
+          await this.emitDistributed(roomCode, messages);
+        } catch (error) {
+          logError("Broadcast failed for room", error, { roomCode });
+        }
+      }
+    } finally {
+      this.broadcastInFlight.delete(roomCode);
+    }
   }
 
   private async getState(roomCode: string): Promise<RoomState> {

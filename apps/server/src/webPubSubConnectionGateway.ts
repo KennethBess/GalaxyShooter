@@ -38,9 +38,13 @@ export class WebPubSubConnectionGateway implements ConnectionGateway {
     });
   }
 
+  private static readonly SEND_TIMEOUT_MS = 2_000;
+
   async sendToPlayer(playerId: string, message: ServerMessage) {
     try {
-      await this.serviceClient.sendToUser(playerId, message);
+      await this.serviceClient.sendToUser(playerId, message, {
+        abortSignal: AbortSignal.timeout(WebPubSubConnectionGateway.SEND_TIMEOUT_MS)
+      });
     } catch (error) {
       logError("Failed to deliver realtime message to player", error, {
         playerId,
