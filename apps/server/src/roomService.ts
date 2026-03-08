@@ -486,7 +486,12 @@ export class RoomService {
     if (trimmed.length < 2 || trimmed.length > 16) {
       throw new Error("Player name must be 2-16 characters");
     }
-    return trimmed;
+    return trimmed
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   private validateShipId(shipId: string): ShipId {

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd c:\\\\Dev\\\\Codex\\\\Test01\\\\apps\\\\server ; node --import tsx --test test/\\*\\*/\\*\\.test\\.ts 2>&1 \\| Select-String \"tests\\|pass\\|fail\" -CaseSensitive:\\$false \\| Select-Object -Last 5$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

@@ -1,23 +1,10 @@
 import type WebSocket from "ws";
 import { TICK_RATE, type ClientMessage, type OpenRoomSummary, type RoomState, type RoomSummary } from "../../../packages/shared/src/index.js";
-import { WebSocketConnectionGateway } from "./connectionGateway.js";
-import { InMemoryRoomDirectory } from "./roomDirectory.js";
-import { InMemoryRoomMessageBus } from "./roomMessageBus.js";
-import { InMemoryRoomRepository } from "./roomRepository.js";
 import { RoomService } from "./roomService.js";
-import { InMemoryRoomRuntimeRegistry } from "./runtimeRegistry.js";
 
 export class RoomManager {
   constructor(
-    private readonly service = new RoomService(
-      new InMemoryRoomRepository(),
-      new InMemoryRoomRuntimeRegistry(),
-      new WebSocketConnectionGateway(),
-      new InMemoryRoomDirectory(),
-      new InMemoryRoomMessageBus(),
-      "local",
-      3600
-    )
+    private readonly service: RoomService
   ) {}
 
   createRoom(playerName: string, shipId?: string): Promise<RoomSummary> {

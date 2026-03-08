@@ -9,6 +9,19 @@ import { InMemoryRoomRepository } from "../src/roomRepository.js";
 import { RoomService } from "../src/roomService.js";
 import { InMemoryRoomRuntimeRegistry } from "../src/runtimeRegistry.js";
 
+const createTestManager = () =>
+  new RoomManager(
+    new RoomService(
+      new InMemoryRoomRepository(),
+      new InMemoryRoomRuntimeRegistry(),
+      new WebSocketConnectionGateway(),
+      new InMemoryRoomDirectory(),
+      new InMemoryRoomMessageBus(),
+      "local",
+      3600
+    )
+  );
+
 class FakeSocket {
   static readonly OPEN = 1;
   readonly OPEN = 1;
@@ -25,7 +38,7 @@ const flushAsync = () => new Promise((resolve) => setImmediate(resolve));
 const parseMessages = <T>(socket: FakeSocket) => socket.sent.map((entry) => JSON.parse(entry) as T);
 
 test("createRoom returns host room summary", async () => {
-  const manager = new RoomManager();
+  const manager = createTestManager();
   const created = await manager.createRoom("Ace", "crimson");
 
   assert.equal(created.room.players.length, 1);
@@ -35,7 +48,7 @@ test("createRoom returns host room summary", async () => {
 });
 
 test("joinRoom rejects duplicates and full rooms", async () => {
-  const manager = new RoomManager();
+  const manager = createTestManager();
   const created = await manager.createRoom("Host", "azure");
   await manager.joinRoom(created.roomCode, "Wing1", "emerald");
   await manager.joinRoom(created.roomCode, "Wing2", "crimson");
@@ -46,7 +59,7 @@ test("joinRoom rejects duplicates and full rooms", async () => {
 });
 
 test("joinRoom accepts normalized room codes", async () => {
-  const manager = new RoomManager();
+  const manager = createTestManager();
   const created = await manager.createRoom("Host", "azure");
   const joined = await manager.joinRoom(` ${created.roomCode.toLowerCase()} `, "Wing", "emerald");
 
@@ -55,7 +68,7 @@ test("joinRoom accepts normalized room codes", async () => {
 });
 
 test("listOpenRooms only returns waiting rooms with space", async () => {
-  const manager = new RoomManager();
+  const manager = createTestManager();
   const openRoom = await manager.createRoom("OpenHost", "azure");
   const fullRoom = await manager.createRoom("FullHost", "crimson");
   const startedRoom = await manager.createRoom("StartedHost", "emerald");
@@ -82,7 +95,7 @@ test("listOpenRooms only returns waiting rooms with space", async () => {
 });
 
 test("host can start a room after players are ready", async () => {
-  const manager = new RoomManager();
+  const manager = createTestManager();
   const host = await manager.createRoom("Host", "azure");
   const wing = await manager.joinRoom(host.roomCode, "Wing", "emerald");
   const hostSocket = new FakeSocket();
@@ -100,7 +113,7 @@ test("host can start a room after players are ready", async () => {
 });
 
 test("leave_room removes player from live match snapshots", async () => {
-  const manager = new RoomManager();
+  const manager = createTestManager();
   const host = await manager.createRoom("Host", "azure");
   const wing = await manager.joinRoom(host.roomCode, "Wing", "emerald");
   const hostSocket = new FakeSocket();
@@ -205,7 +218,7 @@ test("stale in_match room recovers on reconnect and can start again", async () =
 });
 
 test("multiple rooms can run matches at the same time", async () => {
-  const manager = new RoomManager();
+  const manager = createTestManager();
   const roomA = await manager.createRoom("Alpha", "azure");
   const roomB = await manager.createRoom("Bravo", "crimson");
   const socketA = new FakeSocket();

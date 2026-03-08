@@ -2,6 +2,7 @@ import "./telemetry.js";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
 import cors from "cors";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
@@ -130,6 +131,25 @@ app.use(cors(allowedOrigins.length === 0 ? undefined : {
     callback(new Error("Origin not allowed by CORS"));
   }
 }));
+
+app.use((req, res, next) => {
+  if ((req.method === "POST" || req.method === "PUT" || req.method === "PATCH") &&
+    !req.is("application/json")) {
+    res.status(415).json({ message: "Content-Type must be application/json" });
+    return;
+  }
+  next();
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later" }
+});
+app.use("/rooms", apiLimiter);
+app.use("/realtime", apiLimiter);
 
 app.use((req, res, next) => {
   res.locals.requestId = req.header("x-request-id") ?? randomUUID();
