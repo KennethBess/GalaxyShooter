@@ -28,7 +28,7 @@ param webPubSubSku string = 'Free_F1'
 
 @description('Static Web App SKU. Use Free for dev/test, Standard for production.')
 @allowed(['Free', 'Standard'])
-param staticWebAppSku string = 'Free'
+param staticWebAppSku string = 'Standard'
 
 @description('Redis Enterprise SKU name.')
 @allowed(['Balanced_B0', 'Balanced_B1', 'Balanced_B3', 'Balanced_B5', 'Balanced_B10', 'MemoryOptimized_M10', 'MemoryOptimized_M20'])
@@ -132,7 +132,7 @@ resource redisEnterprise 'Microsoft.Cache/redisEnterprise@2025-04-01' = {
   }
 }
 
-resource redisDatabase 'Microsoft.Cache/redisEnterprise/databases@2025-04-01' = {
+resource redisDatabase 'Microsoft.Cache/redisEnterprise/databases@2025-08-01-preview' = {
   name: 'default'
   parent: redisEnterprise
   properties: {
