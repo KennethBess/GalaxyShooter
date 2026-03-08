@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
+import type { ClientMessage, ServerMessage } from "@shared/index";
 import type { RedisClientType } from "redis";
-import type { ClientMessage, ServerMessage } from "../../../packages/shared/src/index.js";
 import { normalizeRoomCode } from "./runtime.js";
 
 export interface RoomCommandEnvelope {

@@ -1,6 +1,6 @@
+import { ROOM_CODE_LENGTH, type RoomState } from "@shared/index";
 import { customAlphabet } from "nanoid";
 import { type RedisClientType } from "redis";
-import { ROOM_CODE_LENGTH, type RoomState } from "../../../packages/shared/src/index.js";
 import { normalizeRoomCode } from "./runtime.js";
 
 export interface RoomRepository {

@@ -1,5 +1,5 @@
+import { ROOM_CODE_LENGTH, SHIP_IDS } from "@shared/index";
 import { z } from "zod";
-import { ROOM_CODE_LENGTH, SHIP_IDS } from "../../../packages/shared/src/index.js";
 
 const playerNameSchema = z.string().trim().min(1).max(20);
 const shipIdSchema = z.enum(SHIP_IDS).optional();

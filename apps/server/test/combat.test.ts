@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { GAME_WIDTH } from "../../../packages/shared/src/index.js";
+import { GAME_WIDTH } from "@shared/index";
 import {
   awardScore,
   createEnemy,

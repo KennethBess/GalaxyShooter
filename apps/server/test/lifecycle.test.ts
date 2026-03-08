@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RECONNECT_GRACE_MS } from "../../../packages/shared/src/index.js";
+import { RECONNECT_GRACE_MS } from "@shared/index";
 import { WebSocketConnectionGateway } from "../src/connectionGateway.js";
 import { InMemoryRoomDirectory } from "../src/roomDirectory.js";
 import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";

@@ -1,4 +1,4 @@
-import type { RoomState, ServerMessage } from "../../../packages/shared/src/index.js";
+import type { RoomState, ServerMessage } from "@shared/index";
 import { createMatch, queueBomb, updateMatch } from "./game.js";
 import { defaultInputState, type RoomRuntime } from "./runtime.js";
 

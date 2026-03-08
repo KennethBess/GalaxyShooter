@@ -1,5 +1,5 @@
+import { type ClientMessage, type OpenRoomSummary, type RoomState, type RoomSummary, TICK_RATE } from "@shared/index";
 import type WebSocket from "ws";
-import { type ClientMessage, type OpenRoomSummary, type RoomState, type RoomSummary, TICK_RATE } from "../../../packages/shared/src/index.js";
 import { RoomService } from "./roomService.js";
 
 export class RoomManager {

@@ -1,5 +1,5 @@
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
-import type { ServerMessage } from "../../../packages/shared/src/index.js";
+import type { ServerMessage } from "@shared/index";
 import type { ConnectionGateway } from "./connectionGateway.js";
 import { logError, logInfo } from "./logger.js";
 

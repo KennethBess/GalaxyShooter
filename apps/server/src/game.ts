@@ -7,8 +7,8 @@ import type {
   ShipId,
   SnapshotState,
   StageDef
-} from "../../../packages/shared/src/index.js";
-import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FIRE_INTERVAL_MS, PLAYER_SPEED, TEAM_LIVES_BASE } from "../../../packages/shared/src/index.js";
+} from "@shared/index";
+import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FIRE_INTERVAL_MS, PLAYER_SPEED, TEAM_LIVES_BASE } from "@shared/index";
 import {
   createEnemy, fireEnemy, hitPlayer, killEnemy,
   resolveCollisions, spawnPlayerVolley

@@ -2,15 +2,15 @@ import "./telemetry.js";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
+import type {
+  ClientMessage,
+} from "@shared/index";
+import { TICK_RATE } from "@shared/index";
 import compression from "compression";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import { WebSocketServer } from "ws";
-import type {
-  ClientMessage,
-} from "../../../packages/shared/src/index.js";
-import { TICK_RATE } from "../../../packages/shared/src/index.js";
 import { gameMetrics, logError, logInfo, requestContext, trackRequest } from "./logger.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 import { normalizeRoomCode } from "./runtime.js";

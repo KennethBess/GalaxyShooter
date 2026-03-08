@@ -1,6 +1,6 @@
+import type { ClientMessage, OpenRoomSummary, PlayerSlot, RoomState, RoomSummary, ServerMessage, ShipId } from "@shared/index";
+import { DEFAULT_SHIP_ID, isShipId, MAX_PLAYERS, RECONNECT_GRACE_MS } from "@shared/index";
 import type WebSocket from "ws";
-import type { ClientMessage, OpenRoomSummary, PlayerSlot, RoomState, RoomSummary, ServerMessage, ShipId } from "../../../packages/shared/src/index.js";
-import { DEFAULT_SHIP_ID, isShipId, MAX_PLAYERS, RECONNECT_GRACE_MS } from "../../../packages/shared/src/index.js";
 import type { ConnectionGateway } from "./connectionGateway.js";
 import { logInfo } from "./logger.js";
 import { MatchService } from "./matchService.js";

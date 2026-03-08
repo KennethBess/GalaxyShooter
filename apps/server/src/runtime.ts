@@ -1,5 +1,5 @@
-import type { InputState } from "../../../packages/shared/src/index.js";
-import { ROOM_CODE_LENGTH } from "../../../packages/shared/src/index.js";
+import type { InputState } from "@shared/index";
+import { ROOM_CODE_LENGTH } from "@shared/index";
 import type { MatchRuntime } from "./game.js";
 
 export type { InputState };

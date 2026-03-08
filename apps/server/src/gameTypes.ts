@@ -6,14 +6,14 @@ import type {
   ResultSummary,
   ShipId,
   StageDef
-} from "../../../packages/shared/src/index.js";
+} from "@shared/index";
 import {
   GAME_WIDTH,
   PLAYER_CLAMP_X_MAX_OFFSET,
   PLAYER_CLAMP_X_MIN,
   PLAYER_CLAMP_Y_MAX_OFFSET,
   PLAYER_CLAMP_Y_MIN
-} from "../../../packages/shared/src/index.js";
+} from "@shared/index";
 import { CAMPAIGN_STAGES } from "./stages.js";
 
 export type { InputState };

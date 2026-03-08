@@ -1,5 +1,5 @@
-import type { EnemyKind } from "../../../packages/shared/src/index.js";
-import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "../../../packages/shared/src/index.js";
+import type { EnemyKind } from "@shared/index";
+import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "@shared/index";
 import {
   BOSS_FIRE_COOLDOWN_MS, BOSS_HP_BASE, BOSS_INITIAL_VX, BOSS_INITIAL_VY, BOSS_RADIUS, BOSS_SPAWN_Y,
   clamp, distanceSq,

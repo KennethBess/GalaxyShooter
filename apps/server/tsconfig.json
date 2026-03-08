@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["../../packages/shared/src/*"]
+    }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }

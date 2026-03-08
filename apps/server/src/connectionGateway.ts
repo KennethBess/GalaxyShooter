@@ -1,5 +1,5 @@
+import type { ServerMessage } from "@shared/index";
 import { WebSocket } from "ws";
-import type { ServerMessage } from "../../../packages/shared/src/index.js";
 
 export interface ConnectionGateway {
   attach(roomCode: string, playerId: string, socket?: WebSocket): void;

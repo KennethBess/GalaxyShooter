@@ -1,4 +1,4 @@
-import type { BossPhaseDef, StageDef } from "../../../packages/shared/src/index.js";
+import type { BossPhaseDef, StageDef } from "@shared/index";
 
 export const BOSS_PHASES: BossPhaseDef[] = [
   { threshold: 0.66, fireIntervalMs: 950 },
