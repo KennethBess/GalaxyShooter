@@ -9,7 +9,8 @@ import {
   resolveCollisions,
   spawnPlayerVolley,
 } from "../src/combat.js";
-import type { MatchRuntime, RuntimePlayer } from "../src/gameTypes.js";
+import { createMatch, updateMatch } from "../src/game.js";
+import type { InputState, MatchRuntime, RuntimePlayer } from "../src/gameTypes.js";
 import {
   BOSS_FIRE_COOLDOWN_MS,
   BOSS_HP_BASE,
@@ -307,5 +308,69 @@ describe("resolveCollisions", () => {
     resolveCollisions(match);
     assert.equal(match.enemies.length, 0, "enemy should be removed after body collision");
     assert.equal(player.alive, false, "player should be killed by body collision");
+  });
+});
+
+describe("Nebula Run full boss fight simulation", () => {
+  it("completes Nebula Run without crash or infinite loop", () => {
+    const match = createMatch("TEST1", "campaign", [
+      { playerId: "p1", name: "TestPilot", shipId: "azure", isHost: true, connected: true },
+    ]);
+    const inputs = new Map<string, InputState>();
+    inputs.set("p1", { up: false, down: false, left: false, right: false, shoot: true });
+    const deltaMs = 33;
+
+    // Keep player invulnerable so they survive the whole simulation
+    match.players.get("p1")!.invulnerableMs = 999999;
+
+    // Phase 1: Run through Nebula Run waves until boss spawns (~727 ticks at 33ms)
+    let bossSpawnTick = -1;
+    for (let i = 0; i < 800; i++) {
+      updateMatch(match, inputs, deltaMs);
+      if (match.stageBossSpawned && bossSpawnTick === -1) {
+        bossSpawnTick = match.tick;
+      }
+    }
+
+    assert.ok(match.stageBossSpawned, "Boss should have spawned after stage duration");
+    assert.ok(bossSpawnTick > 0, "Boss spawn tick should be recorded");
+
+    // Phase 2: Inject player bullets on the boss each tick until it dies
+    const MAX_BOSS_FIGHT_TICKS = 500;
+    let bossDied = false;
+    for (let i = 0; i < MAX_BOSS_FIGHT_TICKS; i++) {
+      const boss = match.enemies.find((e) => e.boss);
+      if (boss) {
+        match.bullets.push({
+          id: `test-pb-${i}`,
+          owner: "player",
+          ownerId: "p1",
+          x: boss.x,
+          y: boss.y,
+          vx: 0,
+          vy: -540,
+          radius: 5,
+          damage: 50,
+        });
+      }
+
+      updateMatch(match, inputs, deltaMs);
+
+      if (match.stageLabel === "Carrier Graveyard") {
+        bossDied = true;
+        break;
+      }
+    }
+
+    assert.ok(bossDied, "Boss should have been defeated");
+    assert.equal(match.stageLabel, "Carrier Graveyard", "Stage should transition to Carrier Graveyard");
+    assert.equal(match.stageIndex, 1, "stageIndex should be 1 after clearing first stage");
+    assert.equal(match.result, undefined, "Game should not be over (not final stage)");
+
+    // Phase 3: Verify the game continues for 100 more ticks without errors
+    for (let i = 0; i < 100; i++) {
+      updateMatch(match, inputs, deltaMs);
+    }
+    assert.ok(match.tick > 900, "Game should continue running after stage transition");
   });
 });
