@@ -1,0 +1,29 @@
+{
+  "name": "@space-shmup/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts --format esm --clean --out-dir dist",
+    "test": "node --import tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "@azure/monitor-opentelemetry": "^1.16.0",
+    "@azure/web-pubsub": "^1.2.0",
+    "@azure/web-pubsub-express": "^1.0.6",
+    "applicationinsights": "^3.14.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "nanoid": "^5.1.5",
+    "redis": "^5.11.0",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/ws": "^8.5.14",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.3"
+  }
+}

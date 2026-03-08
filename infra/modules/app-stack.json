@@ -1,0 +1,345 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "6273021454566218443"
+    }
+  },
+  "parameters": {
+    "name": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "webPubSubHubName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "resourceSuffix": "[take(uniqueString(subscription().id, resourceGroup().name, parameters('name')), 6)]",
+    "acrName": "[toLower(format('acr{0}{1}', replace(parameters('name'), '-', ''), variables('resourceSuffix')))]",
+    "managedEnvironmentName": "[format('cae-{0}-{1}', parameters('name'), variables('resourceSuffix'))]",
+    "apiAppName": "[format('api-{0}-{1}', parameters('name'), variables('resourceSuffix'))]",
+    "logAnalyticsName": "[format('log-{0}-{1}', parameters('name'), variables('resourceSuffix'))]",
+    "appInsightsName": "[format('appi-{0}-{1}', parameters('name'), variables('resourceSuffix'))]",
+    "redisName": "[format('redis-{0}-{1}', parameters('name'), variables('resourceSuffix'))]",
+    "webPubSubName": "[format('wps-{0}-{1}', parameters('name'), variables('resourceSuffix'))]",
+    "staticWebAppName": "[format('swa-{0}-{1}', parameters('name'), variables('resourceSuffix'))]",
+    "apiImagePlaceholder": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('logAnalyticsName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "retentionInDays": 30,
+        "features": {
+          "searchVersion": 1,
+          "legacy": 0,
+          "enableLogAccessUsingOnlyResourcePermissions": true
+        },
+        "sku": {
+          "name": "PerGB2018"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('appInsightsName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-07-01",
+      "name": "[variables('acrName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "adminUserEnabled": false,
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2024-03-01",
+      "name": "[variables('managedEnvironmentName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '2023-09-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '2023-09-01').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2024-11-01",
+      "name": "[variables('staticWebAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[union(parameters('tags'), createObject('azd-service-name', 'web'))]",
+      "sku": {
+        "name": "Standard",
+        "tier": "Standard"
+      },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Cache/redisEnterprise",
+      "apiVersion": "2025-04-01",
+      "name": "[variables('redisName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Balanced_B0"
+      },
+      "properties": {
+        "encryption": {},
+        "highAvailability": "Enabled",
+        "minimumTlsVersion": "1.2"
+      }
+    },
+    {
+      "type": "Microsoft.Cache/redisEnterprise/databases",
+      "apiVersion": "2025-07-01",
+      "name": "[format('{0}/{1}', variables('redisName'), 'default')]",
+      "properties": {
+        "accessKeysAuthentication": "Enabled",
+        "clientProtocol": "Encrypted",
+        "clusteringPolicy": "NoCluster",
+        "evictionPolicy": "NoEviction",
+        "modules": [],
+        "port": 10000
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Cache/redisEnterprise', variables('redisName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.SignalRService/webPubSub",
+      "apiVersion": "2024-03-01",
+      "name": "[variables('webPubSubName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Premium_P1",
+        "capacity": 1
+      },
+      "properties": {
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[variables('apiAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[union(parameters('tags'), createObject('azd-service-name', 'api'))]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "configuration": {
+          "ingress": {
+            "external": true,
+            "allowInsecure": false,
+            "targetPort": 80,
+            "transport": "http"
+          },
+          "secrets": [
+            {
+              "name": "redis-url",
+              "value": "[format('rediss://:{0}@{1}:10000', listKeys(resourceId('Microsoft.Cache/redisEnterprise/databases', variables('redisName'), 'default'), '2025-07-01').primaryKey, reference(resourceId('Microsoft.Cache/redisEnterprise', variables('redisName')), '2025-04-01').hostName)]"
+            },
+            {
+              "name": "webpubsub-connection-string",
+              "value": "[listKeys(resourceId('Microsoft.SignalRService/webPubSub', variables('webPubSubName')), '2024-03-01').primaryConnectionString]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "api",
+              "image": "[variables('apiImagePlaceholder')]",
+              "env": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "PORT",
+                  "value": "80"
+                },
+                {
+                  "name": "INSTANCE_ID",
+                  "value": "[variables('apiAppName')]"
+                },
+                {
+                  "name": "ROOM_STATE_TTL_SECONDS",
+                  "value": "3600"
+                },
+                {
+                  "name": "ROOM_OWNER_TTL_SECONDS",
+                  "value": "120"
+                },
+                {
+                  "name": "WEB_PUBSUB_HUB",
+                  "value": "[parameters('webPubSubHubName')]"
+                },
+                {
+                  "name": "REDIS_URL",
+                  "secretRef": "redis-url"
+                },
+                {
+                  "name": "WEB_PUBSUB_CONNECTION_STRING",
+                  "secretRef": "webpubsub-connection-string"
+                },
+                {
+                  "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                  "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString]"
+                },
+                {
+                  "name": "ALLOWED_ORIGINS",
+                  "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', variables('staticWebAppName')), '2024-11-01').defaultHostname)]"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('1.0')]",
+                "memory": "2Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 10
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', variables('managedEnvironmentName'))]",
+        "[resourceId('Microsoft.Cache/redisEnterprise/databases', variables('redisName'), 'default')]",
+        "[resourceId('Microsoft.Cache/redisEnterprise', variables('redisName'))]",
+        "[resourceId('Microsoft.Web/staticSites', variables('staticWebAppName'))]",
+        "[resourceId('Microsoft.SignalRService/webPubSub', variables('webPubSubName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.SignalRService/webPubSub/hubs",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}/{1}', variables('webPubSubName'), parameters('webPubSubHubName'))]",
+      "properties": {
+        "anonymousConnectPolicy": "Deny",
+        "eventHandlers": [
+          {
+            "urlTemplate": "[format('https://{0}/api/webpubsub/hubs/{1}/', reference(resourceId('Microsoft.App/containerApps', variables('apiAppName')), '2024-03-01').configuration.ingress.fqdn, parameters('webPubSubHubName'))]",
+            "userEventPattern": "client-message",
+            "systemEvents": [
+              "connect",
+              "connected",
+              "disconnected"
+            ]
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', variables('apiAppName'))]",
+        "[resourceId('Microsoft.SignalRService/webPubSub', variables('webPubSubName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps/authConfigs",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}/{1}', variables('apiAppName'), 'current')]",
+      "properties": {
+        "globalValidation": {
+          "unauthenticatedClientAction": "AllowAnonymous"
+        },
+        "platform": {
+          "enabled": false
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', variables('apiAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', variables('acrName'))]",
+      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), variables('apiAppName'), 'AcrPull')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('apiAppName')), '2024-03-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', variables('apiAppName'))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('acrName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "containerRegistryEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('acrName')), '2023-07-01').loginServer]"
+    },
+    "apiUrl": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', variables('apiAppName')), '2024-03-01').configuration.ingress.fqdn)]"
+    },
+    "webUrl": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', variables('staticWebAppName')), '2024-11-01').defaultHostname)]"
+    },
+    "webPubSubName": {
+      "type": "string",
+      "value": "[variables('webPubSubName')]"
+    },
+    "webPubSubHub": {
+      "type": "string",
+      "value": "[parameters('webPubSubHubName')]"
+    },
+    "redisHost": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Cache/redisEnterprise', variables('redisName')), '2025-04-01').hostName]"
+    },
+    "applicationInsightsConnectionString": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString]"
+    }
+  }
+}

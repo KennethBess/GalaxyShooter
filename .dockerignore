@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vite/
+coverage/
+.git/
+.azure/
+apps/client/dist/
+apps/server/dist/

@@ -1,0 +1,27 @@
+name: galaxy-shooter
+metadata:
+  template: galaxy-shooter-azure
+
+services:
+  api:
+    project: .
+    language: js
+    host: containerapp
+    docker:
+      path: apps/server/Dockerfile
+      context: .
+
+  web:
+    project: apps/client
+    language: js
+    host: staticwebapp
+    dist: dist
+
+hooks:
+  prepackage:
+    windows:
+      shell: pwsh
+      run: node scripts/write-client-env.mjs
+    posix:
+      shell: sh
+      run: node ./scripts/write-client-env.mjs
