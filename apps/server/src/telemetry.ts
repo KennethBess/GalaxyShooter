@@ -4,17 +4,21 @@ const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING?.trim
 const shouldEnableTelemetry = Boolean(connectionString) && process.env.NODE_ENV !== "test";
 
 if (shouldEnableTelemetry) {
-  appInsights
-    .setup(connectionString)
-    .setAutoCollectConsole(false)
-    .setAutoCollectDependencies(false)
-    .setAutoCollectExceptions(false)
-    .setAutoCollectPerformance(false)
-    .setAutoCollectRequests(false)
-    .setUseDiskRetryCaching(true)
-    .start();
+  try {
+    appInsights
+      .setup(connectionString)
+      .setAutoCollectConsole(false)
+      .setAutoCollectDependencies(false)
+      .setAutoCollectExceptions(false)
+      .setAutoCollectPerformance(false)
+      .setAutoCollectRequests(false)
+      .setUseDiskRetryCaching(true)
+      .start();
 
-  console.info("Application Insights telemetry enabled");
+    console.info("Application Insights telemetry enabled");
+  } catch (error) {
+    console.warn("Application Insights setup failed, continuing without telemetry", error);
+  }
 }
 
 export const telemetryClient = shouldEnableTelemetry ? appInsights.defaultClient : null;

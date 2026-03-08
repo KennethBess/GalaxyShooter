@@ -156,6 +156,10 @@ app.get("/health", (_req, res) => {
 app.post("/rooms", async (req, res) => {
   try {
     const body = req.body as CreateRoomRequest;
+    if (!body || typeof body.playerName !== "string" || !body.playerName.trim()) {
+      res.status(400).json({ message: "playerName is required" });
+      return;
+    }
     res.status(201).json(await roomManager.createRoom(body.playerName, body.shipId));
   } catch (error) {
     logError("Create room failed", error, requestContext(req, res));
@@ -175,6 +179,10 @@ app.get("/rooms/open", async (req, res) => {
 app.post("/rooms/:code/join", async (req, res) => {
   try {
     const body = req.body as JoinRoomRequest;
+    if (!body || typeof body.playerName !== "string" || !body.playerName.trim()) {
+      res.status(400).json({ message: "playerName is required" });
+      return;
+    }
     res.status(200).json(await roomManager.joinRoom(req.params.code, body.playerName, body.shipId));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to join room";
@@ -250,7 +258,9 @@ wss?.on("connection", async (socket, request) => {
 
   socket.on("close", () => {
     logInfo("Direct websocket disconnected", { roomCode, playerId });
-    void roomManager.disconnectPlayer(roomCode, playerId);
+    void roomManager.disconnectPlayer(roomCode, playerId).catch((error) => {
+      logError("Direct websocket disconnectPlayer failed", error, { roomCode, playerId });
+    });
   });
 });
 

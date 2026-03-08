@@ -107,7 +107,7 @@ resource redisDatabase 'Microsoft.Cache/redisEnterprise/databases@2025-07-01' = 
     accessKeysAuthentication: 'Enabled'
     clientProtocol: 'Encrypted'
     clusteringPolicy: 'NoCluster'
-    evictionPolicy: 'NoEviction'
+    evictionPolicy: 'AllKeysLRU'
     modules: []
     port: 10000
   }
@@ -153,6 +153,10 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'webpubsub-connection-string'
           value: listKeys(webPubSub.id, webPubSub.apiVersion).primaryConnectionString
         }
+        {
+          name: 'appinsights-connection-string'
+          value: appInsights.properties.ConnectionString
+        }
       ]
     }
     template: {
@@ -195,7 +199,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-              value: appInsights.properties.ConnectionString
+              secretRef: 'appinsights-connection-string'
             }
             {
               name: 'ALLOWED_ORIGINS'
@@ -206,6 +210,26 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             cpu: json('1.0')
             memory: '2Gi'
           }
+          probes: [
+            {
+              type: 'Liveness'
+              httpGet: {
+                path: '/health'
+                port: 80
+              }
+              periodSeconds: 15
+              failureThreshold: 3
+            }
+            {
+              type: 'Readiness'
+              httpGet: {
+                path: '/health'
+                port: 80
+              }
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+          ]
         }
       ]
       scale: {

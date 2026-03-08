@@ -93,10 +93,16 @@ export class RedisRoomMessageBus implements RoomMessageBus {
   }
 
   onCommand(handler: (command: RoomCommandEnvelope) => void | Promise<void>) {
+    if (this.commandHandler) {
+      console.warn("RedisRoomMessageBus: overwriting existing command handler");
+    }
     this.commandHandler = handler;
   }
 
   onEvent(handler: (event: RoomEventEnvelope) => void | Promise<void>) {
+    if (this.eventHandler) {
+      console.warn("RedisRoomMessageBus: overwriting existing event handler");
+    }
     this.eventHandler = handler;
   }
 

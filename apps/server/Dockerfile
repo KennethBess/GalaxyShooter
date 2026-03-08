@@ -22,5 +22,8 @@ RUN npm ci --omit=dev --workspace @space-shmup/server
 
 COPY --from=build /workspace/apps/server/dist ./apps/server/dist
 
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+USER nodejs
+
 EXPOSE 3001
 CMD ["node", "apps/server/dist/index.js"]

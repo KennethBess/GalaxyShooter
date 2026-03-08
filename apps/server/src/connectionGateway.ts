@@ -1,4 +1,4 @@
-import type WebSocket from "ws";
+import { WebSocket } from "ws";
 import type { ServerMessage } from "../../../packages/shared/src/index.js";
 
 export interface ConnectionGateway {
@@ -38,7 +38,7 @@ export class WebSocketConnectionGateway implements ConnectionGateway {
 
   async sendToPlayer(playerId: string, message: ServerMessage) {
     const socket = this.sockets.get(playerId);
-    if (socket?.readyState === 1) {
+    if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
     }
   }
@@ -51,7 +51,7 @@ export class WebSocketConnectionGateway implements ConnectionGateway {
     const encoded = JSON.stringify(message);
     for (const playerId of members) {
       const socket = this.sockets.get(playerId);
-      if (socket?.readyState === 1) {
+      if (socket?.readyState === WebSocket.OPEN) {
         socket.send(encoded);
       }
     }

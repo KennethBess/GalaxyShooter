@@ -17,11 +17,14 @@ export class InMemoryRoomRepository implements RoomRepository {
   private readonly rooms = new Map<string, RoomState>();
 
   async allocateRoomCode() {
-    let roomCode = makeCode();
-    while (this.rooms.has(roomCode)) {
-      roomCode = makeCode();
+    const maxAttempts = 100;
+    for (let i = 0; i < maxAttempts; i++) {
+      const roomCode = makeCode();
+      if (!this.rooms.has(roomCode)) {
+        return roomCode;
+      }
     }
-    return roomCode;
+    throw new Error("Unable to allocate a unique room code");
   }
 
   async get(roomCode: string) {
@@ -53,7 +56,8 @@ export class RedisRoomRepository implements RoomRepository {
   ) {}
 
   async allocateRoomCode() {
-    while (true) {
+    const maxAttempts = 100;
+    for (let i = 0; i < maxAttempts; i++) {
       const roomCode = makeCode();
       const reserved = await this.client.set(roomReservationKey(roomCode), "1", {
         NX: true,
@@ -63,6 +67,7 @@ export class RedisRoomRepository implements RoomRepository {
         return roomCode;
       }
     }
+    throw new Error("Unable to allocate a unique room code");
   }
 
   async get(roomCode: string) {

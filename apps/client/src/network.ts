@@ -127,7 +127,12 @@ export class RoomConnection {
       return;
     }
 
-    const payload = JSON.parse(text) as ServerMessage | WebPubSubEnvelope;
+    let payload: ServerMessage | WebPubSubEnvelope;
+    try {
+      payload = JSON.parse(text) as ServerMessage | WebPubSubEnvelope;
+    } catch {
+      return;
+    }
     if (!this.isWebPubSubEnvelope(payload)) {
       onMessage(payload);
       return;

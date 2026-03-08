@@ -392,13 +392,23 @@ export class RoomService {
       return currentOwner;
     }
 
+    // Try to claim ownership; always re-read after attempt to handle races
     const claimed = await this.directory.tryClaimOwner(normalized, this.instanceId);
     if (claimed) {
       this.ownedRooms.add(normalized);
       return this.instanceId;
     }
 
-    return (await this.directory.getOwner(normalized)) ?? this.instanceId;
+    const winner = await this.directory.getOwner(normalized);
+    if (!winner) {
+      // Another instance claimed and released between our calls — safe to self-assign
+      const retryClaimed = await this.directory.tryClaimOwner(normalized, this.instanceId);
+      if (retryClaimed) {
+        this.ownedRooms.add(normalized);
+      }
+      return this.instanceId;
+    }
+    return winner;
   }
 
   private async renewOwnedRoomLeases() {

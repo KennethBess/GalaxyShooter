@@ -43,7 +43,7 @@ export const logError = (message: string, error?: unknown, context: LogContext =
     ? {
         errorName: error.name,
         errorMessage: error.message,
-        errorStack: error.stack
+        ...(process.env.NODE_ENV !== "production" ? { errorStack: error.stack } : {})
       }
     : error !== undefined
       ? { errorValue: String(error) }

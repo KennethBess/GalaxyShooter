@@ -71,30 +71,39 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
     });
   }
 
-  await commandClient.connect();
-  await eventClient.connect();
-  await subscriptionClient.connect();
+  try {
+    await commandClient.connect();
+    await eventClient.connect();
+    await subscriptionClient.connect();
 
-  const bus = new RedisRoomMessageBus(commandClient, subscriptionClient);
-  await bus.initialize();
+    const bus = new RedisRoomMessageBus(commandClient, subscriptionClient);
+    await bus.initialize();
 
-  const service = new RoomService(
-    new RedisRoomRepository(eventClient, config.roomStateTtlSeconds),
-    runtimeRegistry,
-    connections,
-    new RedisRoomDirectory(eventClient, config.roomOwnerTtlSeconds),
-    bus,
-    config.instanceId,
-    config.roomOwnerTtlSeconds
-  );
+    const service = new RoomService(
+      new RedisRoomRepository(eventClient, config.roomStateTtlSeconds),
+      runtimeRegistry,
+      connections,
+      new RedisRoomDirectory(eventClient, config.roomOwnerTtlSeconds),
+      bus,
+      config.instanceId,
+      config.roomOwnerTtlSeconds
+    );
 
-  return {
-    roomManager: new RoomManager(service),
-    realtime,
-    dispose: async () => {
-      await bus.close();
-      await Promise.all([subscriptionClient.quit(), eventClient.quit(), commandClient.quit()]);
-    }
-  };
+    return {
+      roomManager: new RoomManager(service),
+      realtime,
+      dispose: async () => {
+        await bus.close();
+        await Promise.all([subscriptionClient.quit(), eventClient.quit(), commandClient.quit()]);
+      }
+    };
+  } catch (error) {
+    await Promise.allSettled([
+      subscriptionClient.quit(),
+      eventClient.quit(),
+      commandClient.quit()
+    ]);
+    throw error;
+  }
 };
 

@@ -12,6 +12,13 @@ if (!apiUrl) {
   process.exit(0);
 }
 
+try {
+  new URL(apiUrl);
+} catch {
+  console.error(`[write-client-env] API_URL is not a valid URL: ${apiUrl}`);
+  process.exit(1);
+}
+
 mkdirSync(clientDir, { recursive: true });
 writeFileSync(targetPath, `VITE_API_BASE=${apiUrl}\n`, "utf8");
 console.log(`[write-client-env] Wrote ${targetPath}`);
