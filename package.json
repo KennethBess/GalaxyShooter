@@ -10,7 +10,7 @@
     "dev:client": "npm run dev --workspace @space-shmup/client",
     "dev:server": "npm run dev --workspace @space-shmup/server",
     "build": "npm run build --workspace @space-shmup/server && npm run build --workspace @space-shmup/client",
-    "test": "npm run test --workspace @space-shmup/server",
+    "test": "npm run test --workspace @space-shmup/server && npm run test --workspace @space-shmup/shared",
     "lint": "biome check ."
   },
   "devDependencies": {
