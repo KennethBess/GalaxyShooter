@@ -9,5 +9,14 @@ export default defineConfig({
   },
   server: {
     port: 5173
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          phaser: ["phaser"]
+        }
+      }
+    }
   }
 });

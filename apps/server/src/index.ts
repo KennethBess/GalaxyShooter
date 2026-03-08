@@ -1,5 +1,6 @@
 import "./telemetry.js";
 import { WebPubSubEventHandler } from "@azure/web-pubsub-express";
+import compression from "compression";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -122,6 +123,7 @@ if (realtime.mode === "webpubsub") {
 }
 
 app.use(express.json());
+app.use(compression());
 app.use(cors(allowedOrigins.length === 0 ? undefined : {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {

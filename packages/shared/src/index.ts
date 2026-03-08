@@ -251,6 +251,10 @@ export interface ReconnectMessage {
   };
 }
 
+export interface PingMessage {
+  type: "ping";
+}
+
 export type ClientMessage =
   | PlayerInputMessage
   | ReadyMessage
@@ -258,7 +262,8 @@ export type ClientMessage =
   | StartMatchMessage
   | UseBombMessage
   | LeaveRoomMessage
-  | ReconnectMessage;
+  | ReconnectMessage
+  | PingMessage;
 
 export interface RoomStateMessage {
   type: "room_state";

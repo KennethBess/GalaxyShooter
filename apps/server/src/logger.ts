@@ -10,6 +10,11 @@ const severityMap: Record<LogLevel, number> = {
   error: 3
 };
 
+const toStringProps = (context: LogContext): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(context).map(([key, value]) => [key, value === undefined ? "" : String(value)])
+  );
+
 const formatLog = (level: LogLevel, message: string, context: LogContext = {}) =>
   JSON.stringify({
     level,
@@ -22,9 +27,7 @@ const trackTrace = (level: LogLevel, message: string, context: LogContext = {}) 
   telemetryClient?.trackTrace({
     message,
     severity: severityMap[level],
-    properties: Object.fromEntries(
-      Object.entries(context).map(([key, value]) => [key, value === undefined ? "" : String(value)])
-    )
+    properties: toStringProps(context)
   });
 };
 
@@ -54,9 +57,7 @@ export const logError = (message: string, error?: unknown, context: LogContext =
   console.error(formatLog("error", message, fullContext));
   telemetryClient?.trackException({
     exception: error instanceof Error ? error : new Error(message),
-    properties: Object.fromEntries(
-      Object.entries(fullContext).map(([key, value]) => [key, value === undefined ? "" : String(value)])
-    )
+    properties: toStringProps(fullContext)
   });
   trackTrace("error", message, fullContext);
 };
@@ -76,9 +77,7 @@ export const trackRequest = (req: Request, res: Response, durationMs: number) =>
     success: res.statusCode < 500,
     duration: durationMs,
     time: new Date(Date.now() - durationMs),
-    properties: Object.fromEntries(
-      Object.entries(requestContext(req, res)).map(([key, value]) => [key, value === undefined ? "" : String(value)])
-    )
+    properties: toStringProps(requestContext(req, res))
   });
 };
 

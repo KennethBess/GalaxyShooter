@@ -76,19 +76,33 @@ export class RedisRoomRepository implements RoomRepository {
   }
 
   async list() {
-    const roomCodes = await this.client.sMembers(roomIndexKey);
-    if (roomCodes.length === 0) {
-      return [];
-    }
-
-    const rawRooms = await this.client.mGet(roomCodes.map((roomCode) => roomStateKey(roomCode)));
     const liveRooms: RoomState[] = [];
+    let cursor = 0;
 
-    rawRooms.forEach((raw) => {
-      if (raw) {
-        liveRooms.push(JSON.parse(raw) as RoomState);
+    do {
+      const result = await this.client.sScan(roomIndexKey, cursor, { COUNT: 100 });
+      cursor = result.cursor;
+      const batch = result.members;
+
+      if (batch.length === 0) {
+        continue;
       }
-    });
+
+      const rawRooms = await this.client.mGet(batch.map((roomCode) => roomStateKey(roomCode)));
+      const staleCodes: string[] = [];
+
+      rawRooms.forEach((raw, index) => {
+        if (raw) {
+          liveRooms.push(JSON.parse(raw) as RoomState);
+        } else {
+          staleCodes.push(batch[index]!);
+        }
+      });
+
+      if (staleCodes.length > 0) {
+        await this.client.sRem(roomIndexKey, staleCodes);
+      }
+    } while (cursor !== 0);
 
     return liveRooms;
   }

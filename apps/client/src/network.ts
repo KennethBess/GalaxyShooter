@@ -16,6 +16,8 @@ export class RoomConnection {
   private mode: RealtimeMode = "direct";
   private ackId = 1;
   private readonly pendingMessages: ClientMessage[] = [];
+  private heartbeatTimer?: ReturnType<typeof setInterval>;
+  private static readonly HEARTBEAT_INTERVAL_MS = 30_000;
 
   constructor(private readonly roomCode: string, private readonly playerId: string) {}
 
@@ -41,6 +43,7 @@ export class RoomConnection {
   }
 
   disconnect() {
+    this.stopHeartbeat();
     this.pendingMessages.length = 0;
     this.socket?.close();
     this.socket = undefined;
@@ -66,6 +69,7 @@ export class RoomConnection {
 
       socket.addEventListener("open", () => {
         settled = true;
+        this.startHeartbeat();
         this.flushPending();
         resolve();
       });
@@ -82,6 +86,7 @@ export class RoomConnection {
       });
 
       socket.addEventListener("close", () => {
+        this.stopHeartbeat();
         this.socket = undefined;
         if (!settled) {
           settled = true;
@@ -91,6 +96,22 @@ export class RoomConnection {
         onClose();
       });
     });
+  }
+
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (this.socket?.readyState === WebSocket.OPEN) {
+        this.sendNow({ type: "ping" } as ClientMessage);
+      }
+    }, RoomConnection.HEARTBEAT_INTERVAL_MS);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = undefined;
+    }
   }
 
   private flushPending() {
@@ -122,11 +143,16 @@ export class RoomConnection {
   }
 
   private handleIncomingMessage(rawData: unknown, onMessage: (message: ServerMessage) => void) {
-    const text = typeof rawData === "string" ? rawData : rawData instanceof Blob ? undefined : String(rawData);
-    if (!text) {
+    if (rawData instanceof Blob) {
+      rawData.text().then((text) => this.parseAndDispatch(text, onMessage)).catch(() => {});
       return;
     }
 
+    const text = typeof rawData === "string" ? rawData : String(rawData);
+    this.parseAndDispatch(text, onMessage);
+  }
+
+  private parseAndDispatch(text: string, onMessage: (message: ServerMessage) => void) {
     let payload: ServerMessage | WebPubSubEnvelope;
     try {
       payload = JSON.parse(text) as ServerMessage | WebPubSubEnvelope;

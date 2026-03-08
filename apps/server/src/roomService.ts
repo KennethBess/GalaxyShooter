@@ -340,6 +340,9 @@ export class RoomService {
       case "reconnect": {
         return;
       }
+      case "ping": {
+        return;
+      }
     }
   }
 
