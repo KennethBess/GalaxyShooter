@@ -5,6 +5,19 @@ param location string = resourceGroup().location
 param tags object = {}
 param webPubSubHubName string
 
+@description('Log Analytics workspace retention in days.')
+@minValue(30)
+@maxValue(730)
+param logRetentionDays int = 90
+
+@description('Web PubSub unit capacity for scaling.')
+@minValue(1)
+param webPubSubCapacity int = 1
+
+@description('Redis Enterprise SKU name.')
+@allowed(['Balanced_B0', 'Balanced_B1', 'Balanced_B3', 'Balanced_B5', 'Balanced_B10', 'MemoryOptimized_M10', 'MemoryOptimized_M20'])
+param redisSku string = 'Balanced_B0'
+
 var resourceSuffix = take(uniqueString(subscription().id, resourceGroup().name, name), 6)
 var acrName = toLower('acr${replace(name, '-', '')}${resourceSuffix}')
 var managedEnvironmentName = 'cae-${name}-${resourceSuffix}'
@@ -22,7 +35,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   location: location
   tags: tags
   properties: {
-    retentionInDays: 30
+    retentionInDays: logRetentionDays
     features: {
       searchVersion: 1
       legacy: 0
@@ -91,7 +104,7 @@ resource redisEnterprise 'Microsoft.Cache/redisEnterprise@2025-04-01' = {
   location: location
   tags: tags
   sku: {
-    name: 'Balanced_B0'
+    name: redisSku
   }
   properties: {
     encryption: {}
@@ -119,7 +132,7 @@ resource webPubSub 'Microsoft.SignalRService/webPubSub@2024-03-01' = {
   tags: tags
   sku: {
     name: 'Premium_P1'
-    capacity: 1
+    capacity: webPubSubCapacity
   }
   properties: {
     publicNetworkAccess: 'Enabled'
@@ -278,6 +291,141 @@ resource apiAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     principalId: apiApp.identity.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+  }
+}
+
+var actionGroupName = 'ag-${name}-${resourceSuffix}'
+
+resource alertActionGroup 'Microsoft.Insights/actionGroups@2023-09-01-preview' = {
+  name: actionGroupName
+  location: 'global'
+  tags: tags
+  properties: {
+    groupShortName: take('ag-${name}', 12)
+    enabled: true
+  }
+}
+
+resource highCpuAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'High CPU - ${apiAppName}'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Alert when API container app CPU exceeds 80%'
+    severity: 2
+    enabled: true
+    scopes: [apiApp.id]
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT15M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'HighCPU'
+          metricName: 'UsageNanoCores'
+          metricNamespace: 'Microsoft.App/containerApps'
+          operator: 'GreaterThan'
+          threshold: 800000000
+          timeAggregation: 'Average'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [{ actionGroupId: alertActionGroup.id }]
+  }
+}
+
+resource highMemoryAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'High Memory - ${apiAppName}'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Alert when API container app memory exceeds 80%'
+    severity: 2
+    enabled: true
+    scopes: [apiApp.id]
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT15M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'HighMemory'
+          metricName: 'WorkingSetBytes'
+          metricNamespace: 'Microsoft.App/containerApps'
+          operator: 'GreaterThan'
+          threshold: 1717986918
+          timeAggregation: 'Average'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [{ actionGroupId: alertActionGroup.id }]
+  }
+}
+
+resource serverErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'Server Errors - ${apiAppName}'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Alert on elevated 5xx error rate'
+    severity: 1
+    enabled: true
+    scopes: [apiApp.id]
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT15M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'ServerErrors'
+          metricName: 'Requests'
+          metricNamespace: 'Microsoft.App/containerApps'
+          operator: 'GreaterThan'
+          threshold: 10
+          timeAggregation: 'Total'
+          criterionType: 'StaticThresholdCriterion'
+          dimensions: [
+            {
+              name: 'statusCodeCategory'
+              operator: 'Include'
+              values: ['5xx']
+            }
+          ]
+        }
+      ]
+    }
+    actions: [{ actionGroupId: alertActionGroup.id }]
+  }
+}
+
+resource responseTimeAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'Slow Response - ${apiAppName}'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Alert when average response time exceeds 2 seconds'
+    severity: 3
+    enabled: true
+    scopes: [appInsights.id]
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT15M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'SlowResponse'
+          metricName: 'requests/duration'
+          metricNamespace: 'Microsoft.Insights/components'
+          operator: 'GreaterThan'
+          threshold: 2000
+          timeAggregation: 'Average'
+          criterionType: 'StaticThresholdCriterion'
+        }
+      ]
+    }
+    actions: [{ actionGroupId: alertActionGroup.id }]
   }
 }
 

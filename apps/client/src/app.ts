@@ -29,6 +29,7 @@ export class App {
   private session: StoredSession | null = loadSession();
   private selectedShip: ShipId = this.session?.shipId ?? DEFAULT_SHIP_ID;
   private homeMode: "create" | "join" = "create";
+  private eventAbort: AbortController | null = null;
   private state: AppState = {
     screen: "home",
     room: null,
@@ -400,6 +401,10 @@ export class App {
   }
 
   private bindEvents() {
+    this.eventAbort?.abort();
+    this.eventAbort = new AbortController();
+    const { signal } = this.eventAbort;
+
     const activeForm = this.root.querySelector(`#${this.homeMode}-form`) as HTMLFormElement | null;
     activeForm?.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -413,67 +418,67 @@ export class App {
         String(form.get("roomCode") ?? ""),
         String(form.get("join-ship-id") ?? this.selectedShip)
       );
-    });
+    }, { signal });
 
     this.root.querySelector("#switch-create")?.addEventListener("click", () => {
       this.homeMode = "create";
       this.render();
-    });
+    }, { signal });
     this.root.querySelector("#switch-join")?.addEventListener("click", () => {
       this.homeMode = "join";
       this.render();
       void this.refreshOpenRooms();
-    });
+    }, { signal });
 
     this.root.querySelectorAll<HTMLInputElement>("[data-ship-input]").forEach((input) => {
       input.addEventListener("change", () => {
         this.selectedShip = input.value as ShipId;
         this.syncShipPickerSelection();
-      });
+      }, { signal });
     });
 
     this.root.querySelector<HTMLInputElement>("input[name=\"roomCode\"]")?.addEventListener("input", (event) => {
       const input = event.target as HTMLInputElement;
       input.value = this.normalizeRoomCode(input.value);
-    });
+    }, { signal });
 
     this.root.querySelector("#refresh-open-rooms")?.addEventListener("click", () => {
       void this.refreshOpenRooms();
-    });
+    }, { signal });
     this.root.querySelectorAll<HTMLElement>("[data-join-room-code]").forEach((button) => {
       button.addEventListener("click", () => {
         void this.handleJoinFromListing(button.dataset.joinRoomCode ?? "");
-      });
+      }, { signal });
     });
 
     this.root.querySelector("#show-scores")?.addEventListener("click", () => {
       this.state.screen = "scores";
       this.render();
-    });
+    }, { signal });
     this.root.querySelector("#show-settings")?.addEventListener("click", () => {
       this.state.screen = "settings";
       this.render();
-    });
-    this.root.querySelector("#back-home")?.addEventListener("click", () => this.resetToHome());
-    this.root.querySelector("#back-lobby")?.addEventListener("click", () => this.backToLobby());
-    this.root.querySelector("#leave-room")?.addEventListener("click", () => this.leaveRoom());
+    }, { signal });
+    this.root.querySelector("#back-home")?.addEventListener("click", () => this.resetToHome(), { signal });
+    this.root.querySelector("#back-lobby")?.addEventListener("click", () => this.backToLobby(), { signal });
+    this.root.querySelector("#leave-room")?.addEventListener("click", () => this.leaveRoom(), { signal });
     this.root.querySelector("#toggle-ready")?.addEventListener("click", () => {
       const current = this.state.room?.players.find((player) => player.playerId === this.session?.playerId);
       this.connection?.send({ type: "ready", payload: { ready: !(current?.ready ?? false) } });
-    });
-    this.root.querySelector("#start-match")?.addEventListener("click", () => this.connection?.send({ type: "start_match" }));
+    }, { signal });
+    this.root.querySelector("#start-match")?.addEventListener("click", () => this.connection?.send({ type: "start_match" }), { signal });
     this.root.querySelector("#mode-select")?.addEventListener("change", (event) => {
       const next = (event.target as HTMLSelectElement).value as GameMode;
       this.connection?.send({ type: "set_mode", payload: { mode: next } });
-    });
+    }, { signal });
     this.root.querySelector("#setting-shake")?.addEventListener("change", (event) => {
       this.settings.screenshake = (event.target as HTMLInputElement).checked;
       saveSettings(this.settings);
-    });
+    }, { signal });
     this.root.querySelector("#setting-flash")?.addEventListener("change", (event) => {
       this.settings.reducedFlash = (event.target as HTMLInputElement).checked;
       saveSettings(this.settings);
-    });
+    }, { signal });
   }
   private async refreshOpenRooms() {
     if (this.state.screen !== "home" || this.homeMode !== "join") {

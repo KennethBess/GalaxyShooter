@@ -182,7 +182,7 @@ app.post("/rooms", async (req, res) => {
     }
     res.status(201).json(await roomManager.createRoom(body.playerName, body.shipId));
   } catch (error) {
-    logError("Create room failed", error, requestContext(req, res));
+    logError("Create room failed", error);
     res.status(400).json({ message: error instanceof Error ? error.message : "Unable to create room" });
   }
 });
@@ -191,7 +191,7 @@ app.get("/rooms/open", async (req, res) => {
   try {
     res.status(200).json(await roomManager.listOpenRooms());
   } catch (error) {
-    logError("List open rooms failed", error, requestContext(req, res));
+    logError("List open rooms failed", error);
     res.status(500).json({ message: error instanceof Error ? error.message : "Unable to list open rooms" });
   }
 });
@@ -207,7 +207,7 @@ app.post("/rooms/:code/join", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to join room";
     const status = message === "Room not found" ? 404 : message === "Room is full" ? 409 : 400;
-    logError("Join room failed", error, { ...requestContext(req, res), roomCode: req.params.code, status });
+    logError("Join room failed", error, { roomCode: req.params.code, status });
     res.status(status).json({ message });
   }
 });
@@ -238,7 +238,7 @@ app.post("/realtime/negotiate", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to negotiate realtime connection";
     const status = message === "Room not found" ? 404 : 400;
-    logError("Realtime negotiation failed", error, requestContext(req, res));
+    logError("Realtime negotiation failed", error);
     res.status(status).json({ message });
   }
 });

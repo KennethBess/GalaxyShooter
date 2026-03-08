@@ -2,7 +2,18 @@ import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "../../../packages/shared/src/inde
 import type { EnemyKind } from "../../../packages/shared/src/index.js";
 import { BOSS_PHASES, CAMPAIGN_STAGES } from "./stages.js";
 import {
-  clamp, distanceSq, getStage, getStageHotStartMs, LANES, nextId, queueEvent,
+  BOSS_FIRE_COOLDOWN_MS, BOSS_HP_BASE, BOSS_INITIAL_VX, BOSS_INITIAL_VY, BOSS_RADIUS, BOSS_SPAWN_Y,
+  clamp, distanceSq,
+  ENEMY_BULLET_RADIUS_LARGE, ENEMY_BULLET_RADIUS_SMALL, ENEMY_BULLET_SPEED_BASE, ENEMY_BULLET_SPEED_HEAVY,
+  ENEMY_DRIFT_SPEED, ENEMY_SPAWN_Y,
+  FIGHTER_FIRE_COOLDOWN_MS, FIGHTER_STATS, HEAVY_FIRE_COOLDOWN_MS, HEAVY_STATS,
+  getStage, getStageHotStartMs,
+  KAMIKAZE_STATS, LANES, nextId,
+  PICKUP_BOSS_DROP_SPEED, PICKUP_COLLECT_RADIUS, PICKUP_DROP_SPEED,
+  PLAYER_BULLET_DAMAGE, PLAYER_BULLET_OFFSET_Y, PLAYER_BULLET_RADIUS, PLAYER_BULLET_SPEED,
+  PLAYER_HITBOX_RADIUS, queueEvent,
+  SCORE_BOSS, SCORE_FIGHTER, SCORE_HEAVY,
+  SURVIVAL_BOSS_INTERVAL_MS,
   type MatchRuntime, type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer
 } from "./gameTypes.js";
 
@@ -12,13 +23,13 @@ export const createEnemy = (match: MatchRuntime, kind: EnemyKind, lane: number, 
       id: nextId(match, "boss"),
       kind: "boss",
       x: GAME_WIDTH / 2,
-      y: -120,
-      vx: 90,
-      vy: 40,
-      hp: Math.round(420 * match.difficultyScale),
-      maxHp: Math.round(420 * match.difficultyScale),
-      radius: 56,
-      fireCooldownMs: 1000,
+      y: BOSS_SPAWN_Y,
+      vx: BOSS_INITIAL_VX,
+      vy: BOSS_INITIAL_VY,
+      hp: Math.round(BOSS_HP_BASE * match.difficultyScale),
+      maxHp: Math.round(BOSS_HP_BASE * match.difficultyScale),
+      radius: BOSS_RADIUS,
+      fireCooldownMs: BOSS_FIRE_COOLDOWN_MS,
       waveId,
       boss: true,
       phase: 0,
@@ -28,17 +39,17 @@ export const createEnemy = (match: MatchRuntime, kind: EnemyKind, lane: number, 
 
   const base =
     kind === "fighter"
-      ? { hp: 12, speed: 130, radius: 20, cooldown: 1250 }
+      ? FIGHTER_STATS
       : kind === "heavy"
-        ? { hp: 28, speed: 70, radius: 28, cooldown: 1650 }
-        : { hp: 10, speed: 220, radius: 18, cooldown: 999999 };
+        ? HEAVY_STATS
+        : KAMIKAZE_STATS;
 
   return {
     id: nextId(match, "enemy"),
     kind,
     x: LANES[lane % LANES.length] ?? GAME_WIDTH / 2,
-    y: -40,
-    vx: kind === "kamikaze" ? 0 : ((lane % 2 === 0 ? 1 : -1) * 20),
+    y: ENEMY_SPAWN_Y,
+    vx: kind === "kamikaze" ? 0 : ((lane % 2 === 0 ? 1 : -1) * ENEMY_DRIFT_SPEED),
     vy: base.speed,
     hp: Math.round(base.hp * match.difficultyScale),
     maxHp: Math.round(base.hp * match.difficultyScale),
@@ -63,11 +74,11 @@ export const awardScore = (match: MatchRuntime, playerId: string | undefined, po
 
 export const maybeDropPickup = (match: MatchRuntime, enemy: RuntimeEnemy) => {
   if (enemy.boss) {
-    match.pickups.push({ id: nextId(match, "pickup"), kind: "bomb", x: enemy.x, y: enemy.y, vy: 110 });
+    match.pickups.push({ id: nextId(match, "pickup"), kind: "bomb", x: enemy.x, y: enemy.y, vy: PICKUP_BOSS_DROP_SPEED });
     return;
   }
   if (match.idCounter % 5 === 0) {
-    match.pickups.push({ id: nextId(match, "pickup"), kind: "weapon", x: enemy.x, y: enemy.y, vy: 120 });
+    match.pickups.push({ id: nextId(match, "pickup"), kind: "weapon", x: enemy.x, y: enemy.y, vy: PICKUP_DROP_SPEED });
   }
 };
 
@@ -79,11 +90,11 @@ export const spawnPlayerVolley = (match: MatchRuntime, player: RuntimePlayer) =>
       owner: "player",
       ownerId: player.playerId,
       x: player.x + offset,
-      y: player.y - 18,
+      y: player.y + PLAYER_BULLET_OFFSET_Y,
       vx: offset * 2.5,
-      vy: -540,
-      radius: 5,
-      damage: player.weaponLevel >= 3 ? 12 : player.weaponLevel === 2 ? 10 : 9
+      vy: PLAYER_BULLET_SPEED,
+      radius: PLAYER_BULLET_RADIUS,
+      damage: player.weaponLevel >= 3 ? PLAYER_BULLET_DAMAGE.level3 : player.weaponLevel === 2 ? PLAYER_BULLET_DAMAGE.level2 : PLAYER_BULLET_DAMAGE.level1
     });
   }
 };
@@ -101,8 +112,8 @@ export const fireEnemy = (match: MatchRuntime, enemy: RuntimeEnemy) => {
         x: enemy.x + offset,
         y: enemy.y + 18,
         vx: 0,
-        vy: 250 + Math.abs(offset) * 0.25,
-        radius: 7,
+        vy: ENEMY_BULLET_SPEED_BASE + Math.abs(offset) * 0.25,
+        radius: ENEMY_BULLET_RADIUS_LARGE - 1,
         damage: 1
       });
     }
@@ -116,11 +127,11 @@ export const fireEnemy = (match: MatchRuntime, enemy: RuntimeEnemy) => {
     x: enemy.x,
     y: enemy.y + enemy.radius / 2,
     vx: 0,
-    vy: enemy.kind === "heavy" ? 190 : 250,
-    radius: enemy.kind === "heavy" ? 8 : 6,
+    vy: enemy.kind === "heavy" ? ENEMY_BULLET_SPEED_HEAVY : ENEMY_BULLET_SPEED_BASE,
+    radius: enemy.kind === "heavy" ? ENEMY_BULLET_RADIUS_LARGE : ENEMY_BULLET_RADIUS_SMALL,
     damage: 1
   });
-  enemy.fireCooldownMs = enemy.kind === "heavy" ? 1500 : 1100;
+  enemy.fireCooldownMs = enemy.kind === "heavy" ? HEAVY_FIRE_COOLDOWN_MS : FIGHTER_FIRE_COOLDOWN_MS;
 };
 
 export const hitPlayer = (match: MatchRuntime, player: RuntimePlayer) => {
@@ -152,7 +163,7 @@ export const killEnemy = (match: MatchRuntime, enemyId: string, ownerId?: string
   }
   const enemy = match.enemies[enemyIndex]!;
   match.enemies.splice(enemyIndex, 1);
-  awardScore(match, ownerId, enemy.boss ? 1500 : enemy.kind === "heavy" ? 320 : 120);
+  awardScore(match, ownerId, enemy.boss ? SCORE_BOSS : enemy.kind === "heavy" ? SCORE_HEAVY : SCORE_FIGHTER);
   maybeDropPickup(match, enemy);
 
   if (enemy.boss) {
@@ -182,7 +193,7 @@ export const killEnemy = (match: MatchRuntime, enemyId: string, ownerId?: string
     } else {
       match.stageIndex += 1;
       match.stageLabel = `Survival ${match.stageIndex}`;
-      match.survivalBossMs = match.elapsedMs + 45000;
+      match.survivalBossMs = match.elapsedMs + SURVIVAL_BOSS_INTERVAL_MS;
     }
   }
 };
@@ -213,7 +224,7 @@ export const resolveCollisions = (match: MatchRuntime) => {
       if (!player.alive || player.invulnerableMs > 0) {
         continue;
       }
-      if (distanceSq(bullet.x, bullet.y, player.x, player.y) <= (bullet.radius + 16) ** 2) {
+      if (distanceSq(bullet.x, bullet.y, player.x, player.y) <= (bullet.radius + PLAYER_HITBOX_RADIUS) ** 2) {
         hitPlayer(match, player);
         hitPlayerAny = true;
         break;
@@ -230,7 +241,7 @@ export const resolveCollisions = (match: MatchRuntime) => {
       if (!player.alive || player.invulnerableMs > 0) {
         continue;
       }
-      if (distanceSq(enemy.x, enemy.y, player.x, player.y) <= (enemy.radius + 16) ** 2) {
+      if (distanceSq(enemy.x, enemy.y, player.x, player.y) <= (enemy.radius + PLAYER_HITBOX_RADIUS) ** 2) {
         enemy.hp = 0;
         hitPlayer(match, player);
       }
@@ -240,7 +251,7 @@ export const resolveCollisions = (match: MatchRuntime) => {
 
   const remainingPickups: RuntimePickup[] = [];
   for (const pickup of match.pickups) {
-    const collector = [...match.players.values()].find((player) => player.alive && distanceSq(player.x, player.y, pickup.x, pickup.y) <= 28 ** 2);
+    const collector = [...match.players.values()].find((player) => player.alive && distanceSq(player.x, player.y, pickup.x, pickup.y) <= PICKUP_COLLECT_RADIUS ** 2);
     if (!collector) {
       remainingPickups.push(pickup);
       continue;

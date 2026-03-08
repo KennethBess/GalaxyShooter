@@ -4,38 +4,10 @@ import { WebSocketConnectionGateway } from "../src/connectionGateway.js";
 import { createMatch, updateMatch } from "../src/game.js";
 import { InMemoryRoomDirectory } from "../src/roomDirectory.js";
 import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
-import { RoomManager } from "../src/roomManager.js";
 import { InMemoryRoomRepository } from "../src/roomRepository.js";
 import { RoomService } from "../src/roomService.js";
 import { InMemoryRoomRuntimeRegistry } from "../src/runtimeRegistry.js";
-
-const createTestManager = () =>
-  new RoomManager(
-    new RoomService(
-      new InMemoryRoomRepository(),
-      new InMemoryRoomRuntimeRegistry(),
-      new WebSocketConnectionGateway(),
-      new InMemoryRoomDirectory(),
-      new InMemoryRoomMessageBus(),
-      "local",
-      3600
-    )
-  );
-
-class FakeSocket {
-  static readonly OPEN = 1;
-  readonly OPEN = 1;
-  readyState = 1;
-  sent: string[] = [];
-
-  send(message: string) {
-    this.sent.push(message);
-  }
-}
-
-const flushAsync = () => new Promise((resolve) => setImmediate(resolve));
-
-const parseMessages = <T>(socket: FakeSocket) => socket.sent.map((entry) => JSON.parse(entry) as T);
+import { FakeSocket, createTestManager, flushAsync, parseMessages } from "./helpers.js";
 
 test("createRoom returns host room summary", async () => {
   const manager = createTestManager();
