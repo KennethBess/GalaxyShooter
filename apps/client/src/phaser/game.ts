@@ -229,6 +229,8 @@ class GameScene extends Phaser.Scene {
   private readonly predictedBullets: PredictedBullet[] = [];
   private snapshot: SnapshotState | null = null;
   private selfPlayerId: string | null = null;
+  private lastSnapshotMs = 0;
+  private static readonly STALE_THRESHOLD_MS = 3000;
   private background?: Phaser.GameObjects.TileSprite;
   private bulletLayer?: Phaser.GameObjects.Graphics;
   private hud?: Phaser.GameObjects.Text;
@@ -310,6 +312,13 @@ class GameScene extends Phaser.Scene {
     this.spawnPredictedShots();
     this.updatePredictedBullets(delta);
     this.interpolateSprites(delta);
+
+    if (this.snapshot && this.lastSnapshotMs > 0) {
+      const staleDuration = performance.now() - this.lastSnapshotMs;
+      if (staleDuration > GameScene.STALE_THRESHOLD_MS) {
+        this.hud?.setText(`${this.snapshot.stageLabel}   Score ${this.snapshot.score}   ⚠ CONNECTION LOST`);
+      }
+    }
   }
 
   applySnapshot(snapshot: SnapshotState | null, selfPlayerId: string | null) {
@@ -321,6 +330,7 @@ class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.lastSnapshotMs = performance.now();
     this.syncPlayers();
     this.syncEnemies();
     this.syncBullets();
@@ -331,6 +341,7 @@ class GameScene extends Phaser.Scene {
   reset() {
     this.snapshot = null;
     this.selfPlayerId = null;
+    this.lastSnapshotMs = 0;
     this.clearObjects();
     this.hud?.setText("Waiting for room to start");
   }

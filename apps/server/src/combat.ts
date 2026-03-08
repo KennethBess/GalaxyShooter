@@ -236,14 +236,16 @@ export const resolveCollisions = (match: MatchRuntime) => {
   }
   match.bullets = remainingBullets;
 
-  for (const enemy of match.enemies) {
+  for (const enemy of [...match.enemies]) {
     for (const player of match.players.values()) {
       if (!player.alive || player.invulnerableMs > 0) {
         continue;
       }
       if (distanceSq(enemy.x, enemy.y, player.x, player.y) <= (enemy.radius + PLAYER_HITBOX_RADIUS) ** 2) {
         enemy.hp = 0;
+        killEnemy(match, enemy.id);
         hitPlayer(match, player);
+        break;
       }
     }
   }

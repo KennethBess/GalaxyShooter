@@ -283,4 +283,29 @@ describe("resolveCollisions", () => {
     assert.equal(match.bullets.length, 0);
     assert.equal(player.alive, false);
   });
+
+  it("boss body collision triggers killEnemy and stage transition", () => {
+    const match = createMockMatch({ stageBossSpawned: true });
+    const boss = createEnemy(match, "fighter", 0, "w1", true);
+    const player = match.players.get("p1")!;
+    boss.x = player.x;
+    boss.y = player.y;
+    match.enemies.push(boss);
+    resolveCollisions(match);
+    assert.equal(match.enemies.length, 0, "boss should be removed");
+    assert.equal(match.stageBossSpawned, false, "stageBossSpawned should reset after boss kill");
+    assert.ok(match.pendingEvents.some((e) => e.type === "game_event" && e.payload.kind === "boss_defeated"), "should emit boss_defeated event");
+  });
+
+  it("normal enemy body collision removes enemy", () => {
+    const match = createMockMatch();
+    const enemy = createEnemy(match, "fighter", 0, "w1");
+    const player = match.players.get("p1")!;
+    enemy.x = player.x;
+    enemy.y = player.y;
+    match.enemies.push(enemy);
+    resolveCollisions(match);
+    assert.equal(match.enemies.length, 0, "enemy should be removed after body collision");
+    assert.equal(player.alive, false, "player should be killed by body collision");
+  });
 });

@@ -2,7 +2,7 @@ import type { ClientMessage, OpenRoomSummary, PlayerSlot, RoomState, RoomSummary
 import { DEFAULT_SHIP_ID, isShipId, MAX_PLAYERS, RECONNECT_GRACE_MS } from "@shared/index";
 import type WebSocket from "ws";
 import type { ConnectionGateway } from "./connectionGateway.js";
-import { logInfo } from "./logger.js";
+import { logError, logInfo } from "./logger.js";
 import { MatchService } from "./matchService.js";
 import type { RoomDirectory } from "./roomDirectory.js";
 import type { RoomCommandEnvelope, RoomEventEnvelope, RoomMessageBus } from "./roomMessageBus.js";
@@ -212,20 +212,24 @@ export class RoomService {
       if (!this.ownedRooms.has(roomCode)) {
         continue;
       }
-      const state = await this.repository.get(roomCode);
-      if (!state) {
-        this.runtimes.delete(roomCode);
-        this.ownedRooms.delete(roomCode);
-        continue;
-      }
-      if (await this.resetStaleMatchIfNeeded(state, runtime)) {
-        await this.emitDistributed(state.roomCode, [{ type: "room_state", payload: state }]);
-        continue;
-      }
-      const messages = this.matches.tick(state, runtime, deltaMs);
-      if (messages.length > 0) {
-        await this.repository.save(state);
-        await this.emitDistributed(state.roomCode, messages);
+      try {
+        const state = await this.repository.get(roomCode);
+        if (!state) {
+          this.runtimes.delete(roomCode);
+          this.ownedRooms.delete(roomCode);
+          continue;
+        }
+        if (await this.resetStaleMatchIfNeeded(state, runtime)) {
+          await this.emitDistributed(state.roomCode, [{ type: "room_state", payload: state }]);
+          continue;
+        }
+        const messages = this.matches.tick(state, runtime, deltaMs);
+        if (messages.length > 0) {
+          await this.repository.save(state);
+          await this.emitDistributed(state.roomCode, messages);
+        }
+      } catch (error) {
+        logError("Tick failed for room", error, { roomCode });
       }
     }
   }

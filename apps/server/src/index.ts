@@ -276,11 +276,21 @@ wss?.on("connection", async (socket, request) => {
   });
 });
 
-const tickInterval = setInterval(() => {
-  void roomManager.tick(1000 / TICK_RATE).catch((error) => {
-    logError("Room tick failed", error);
-  });
-}, 1000 / TICK_RATE);
+const TICK_MS = 1000 / TICK_RATE;
+let tickTimer: ReturnType<typeof setTimeout>;
+const scheduleTick = () => {
+  tickTimer = setTimeout(async () => {
+    const tickStart = Date.now();
+    try {
+      await roomManager.tick(TICK_MS);
+    } catch (error) {
+      logError("Room tick failed", error);
+    }
+    gameMetrics.tickDuration.record(Date.now() - tickStart);
+    scheduleTick();
+  }, TICK_MS);
+};
+scheduleTick();
 
 let shuttingDown = false;
 const shutdown = async () => {
@@ -288,7 +298,7 @@ const shutdown = async () => {
     return;
   }
   shuttingDown = true;
-  clearInterval(tickInterval);
+  clearTimeout(tickTimer);
   wss?.close();
   server.close();
   await dispose();
