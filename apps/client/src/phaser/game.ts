@@ -1,14 +1,6 @@
-import type { SnapshotState } from "@shared/index";
+import type { InputState, SnapshotState } from "@shared/index";
 import { type EnemyKind, GAME_HEIGHT, GAME_WIDTH, PLAYER_SPEED, SHIP_OPTIONS, type ShipId } from "@shared/index";
 import Phaser from "phaser";
-
-interface InputState {
-  up: boolean;
-  down: boolean;
-  left: boolean;
-  right: boolean;
-  shoot: boolean;
-}
 
 interface GameController {
   setSnapshot: (snapshot: SnapshotState | null, selfPlayerId: string | null) => void;

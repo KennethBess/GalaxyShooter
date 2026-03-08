@@ -2,6 +2,7 @@ import type {
   EnemyKind,
   GameEventMessage,
   GameMode,
+  InputState,
   ResultSummary,
   ShipId,
   StageDef
@@ -9,13 +10,7 @@ import type {
 import { GAME_WIDTH } from "../../../packages/shared/src/index.js";
 import { CAMPAIGN_STAGES } from "./stages.js";
 
-export interface InputState {
-  up: boolean;
-  down: boolean;
-  left: boolean;
-  right: boolean;
-  shoot: boolean;
-}
+export type { InputState };
 
 export interface RuntimePlayer {
   playerId: string;

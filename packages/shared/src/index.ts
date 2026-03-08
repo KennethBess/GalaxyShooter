@@ -154,6 +154,14 @@ export interface StageDef {
   waves: EnemySpawnDef[];
 }
 
+export interface InputState {
+  up: boolean;
+  down: boolean;
+  left: boolean;
+  right: boolean;
+  shoot: boolean;
+}
+
 export interface EnemySpawnDef {
   id: string;
   timeMs: number;

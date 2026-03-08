@@ -1,13 +1,8 @@
+import type { InputState } from "../../../packages/shared/src/index.js";
 import { ROOM_CODE_LENGTH } from "../../../packages/shared/src/index.js";
 import type { MatchRuntime } from "./game.js";
 
-export interface InputState {
-  up: boolean;
-  down: boolean;
-  left: boolean;
-  right: boolean;
-  shoot: boolean;
-}
+export type { InputState };
 
 export interface RoomRuntime {
   inputs: Map<string, InputState>;

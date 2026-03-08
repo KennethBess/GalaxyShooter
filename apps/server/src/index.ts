@@ -9,14 +9,12 @@ import rateLimit from "express-rate-limit";
 import { WebSocketServer } from "ws";
 import type {
   ClientMessage,
-  CreateRoomRequest,
-  JoinRoomRequest,
-  RealtimeNegotiationRequest
 } from "../../../packages/shared/src/index.js";
 import { TICK_RATE } from "../../../packages/shared/src/index.js";
 import { gameMetrics, logError, logInfo, requestContext, trackRequest } from "./logger.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 import { normalizeRoomCode } from "./runtime.js";
+import { parseCreateRoomRequest, parseJoinRoomRequest, parseRealtimeNegotiationRequest } from "./validation.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -177,11 +175,7 @@ app.get("/health", (_req, res) => {
 
 app.post("/rooms", async (req, res) => {
   try {
-    const body = req.body as CreateRoomRequest;
-    if (!body || typeof body.playerName !== "string" || !body.playerName.trim()) {
-      res.status(400).json({ message: "playerName is required" });
-      return;
-    }
+    const body = parseCreateRoomRequest(req.body);
     res.status(201).json(await roomManager.createRoom(body.playerName, body.shipId));
   } catch (error) {
     logError("Create room failed", error);
@@ -200,11 +194,7 @@ app.get("/rooms/open", async (req, res) => {
 
 app.post("/rooms/:code/join", async (req, res) => {
   try {
-    const body = req.body as JoinRoomRequest;
-    if (!body || typeof body.playerName !== "string" || !body.playerName.trim()) {
-      res.status(400).json({ message: "playerName is required" });
-      return;
-    }
+    const body = parseJoinRoomRequest(req.body);
     res.status(200).json(await roomManager.joinRoom(req.params.code, body.playerName, body.shipId));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to join room";
@@ -216,7 +206,7 @@ app.post("/rooms/:code/join", async (req, res) => {
 
 app.post("/realtime/negotiate", async (req, res) => {
   try {
-    const body = req.body as RealtimeNegotiationRequest;
+    const body = parseRealtimeNegotiationRequest(req.body);
     const roomCode = normalizeRoomCode(body.roomCode);
     await roomManager.validatePlayer(roomCode, body.playerId);
 
