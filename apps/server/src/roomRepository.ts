@@ -80,7 +80,7 @@ export class RedisRoomRepository implements RoomRepository {
     let cursor = 0;
 
     do {
-      const result = await this.client.sScan(roomIndexKey, cursor, { COUNT: 100 });
+      const result = await this.client.sScan(roomIndexKey, String(cursor), { COUNT: 100 });
       cursor = result.cursor;
       const batch = result.members;
 
