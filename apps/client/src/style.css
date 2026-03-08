@@ -16,6 +16,56 @@
   --shadow: 0 24px 72px rgba(0, 0, 0, 0.28);
 }
 
+/* Accessibility: screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.sr-only-focusable:focus {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: auto;
+  height: auto;
+  padding: 0.75em 1.5em;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  background: var(--accent);
+  color: var(--bg-mid);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* Ship picker fieldset reset */
+.ship-grid-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* Forced-colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  .ship-option.selected {
+    outline: 2px solid Highlight;
+  }
+  .primary-button, .secondary-button, .ghost-button {
+    border: 1px solid ButtonText;
+  }
+  .notice-banner {
+    border: 1px solid CanvasText;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

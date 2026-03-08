@@ -59,12 +59,15 @@ export class App {
       ? this.getGameMarkup(room)
       : this.getFrontMarkup(room, players, myPlayer, playerName, scores);
 
+    document.title = this.getScreenTitle();
     this.mountGameHost();
     this.bindEvents();
     this.syncShipPickerSelection();
     if (this.state.screen === "game") {
       this.refreshGamePanel();
     }
+    const main = this.root.querySelector<HTMLElement>("#maincontent");
+    main?.focus({ preventScroll: true });
   }
 
   private mountGameHost() {
@@ -84,7 +87,7 @@ export class App {
     switch (this.state.screen) {
       case "home":
         return `
-          <main class="front-page landing-page">
+          <main id="maincontent" tabindex="-1" class="front-page landing-page">
             <div class="landing-grid">
               <section class="hero landing-hero">
                 <div class="hero-art" aria-hidden="true">${heroBannerSvg()}</div>
@@ -94,7 +97,7 @@ export class App {
                   <p class="lede">Create a squad room, share the code, and push through campaign bosses or survival together.</p>
                 </div>
                 <div class="landing-support">
-                  <div class="notice-banner">${this.escape(this.state.notice)}</div>
+                  <div class="notice-banner" role="status" aria-live="polite">${this.escape(this.state.notice)}</div>
                   <div class="hero-meta">
                     <span>Up to 4 players</span>
                     <span>Room code join</span>
@@ -104,12 +107,13 @@ export class App {
               </section>
               <section class="front-card landing-panel">
                 <div class="mode-switch" role="tablist" aria-label="Room action">
-                  <button id="switch-create" class="mode-pill ${this.homeMode === "create" ? "active" : ""}" type="button">Create Room</button>
-                  <button id="switch-join" class="mode-pill ${this.homeMode === "join" ? "active" : ""}" type="button">Join Room</button>
+                  <button id="switch-create" class="mode-pill ${this.homeMode === "create" ? "active" : ""}" type="button" role="tab" aria-selected="${this.homeMode === "create"}" aria-controls="create-form">Create Room</button>
+                  <button id="switch-join" class="mode-pill ${this.homeMode === "join" ? "active" : ""}" type="button" role="tab" aria-selected="${this.homeMode === "join"}" aria-controls="join-form">Join Room</button>
                 </div>
-                <form id="${this.homeMode}-form" class="stack compact-stack">
-                  <input name="playerName" maxlength="16" placeholder="Pilot name" value="${this.escape(playerName)}" required />
-                  ${this.homeMode === "join" ? '<input name="roomCode" maxlength="5" placeholder="Game code" style="text-transform:uppercase" required />' : ""}
+                <form id="${this.homeMode}-form" role="tabpanel" class="stack compact-stack">
+                  <label for="pilot-name" class="sr-only">Pilot name</label>
+                  <input id="pilot-name" name="playerName" maxlength="16" placeholder="Pilot name" value="${this.escape(playerName)}" required />
+                  ${this.homeMode === "join" ? '<label for="room-code" class="sr-only">Game code</label><input id="room-code" name="roomCode" maxlength="5" placeholder="Game code" style="text-transform:uppercase" required />' : ""}
                   ${this.renderShipPicker(`${this.homeMode}-ship-id`)}
                   ${this.homeMode === "join" ? this.renderOpenRooms() : ""}
                   <button type="submit" class="primary-button" ${this.state.busy ? "disabled" : ""}>${this.homeMode === "create" ? "Generate room code" : "Join squad"}</button>
@@ -124,7 +128,7 @@ export class App {
         `;
       case "lobby":
         return `
-          <main class="front-page lobby-page">
+          <main id="maincontent" tabindex="-1" class="front-page lobby-page">
             <div class="lobby-grid">
               <header class="hero lobby-hero">
                 <p class="eyebrow">Squad Lobby</p>
@@ -144,7 +148,7 @@ export class App {
                     <strong id="lobby-host">${this.escape(players.find((player) => player.isHost)?.name ?? "-")}</strong>
                   </div>
                 </div>
-                <div id="lobby-notice" class="notice-banner">${this.escape(this.state.notice)}</div>
+                <div id="lobby-notice" class="notice-banner" role="status" aria-live="polite">${this.escape(this.state.notice)}</div>
               </header>
               <section class="front-card lobby-panel">
                 <div class="lobby-panel-top">
@@ -185,7 +189,7 @@ export class App {
         `;
       case "results":
         return `
-          <main class="front-page">
+          <main id="maincontent" tabindex="-1" class="front-page">
             <div class="front-shell compact-shell">
               <header class="hero compact-hero">
                 <p class="eyebrow">Mission ${this.state.result?.outcome === "victory" ? "Cleared" : "Failed"}</p>
@@ -209,7 +213,7 @@ export class App {
         `;
       case "scores":
         return `
-          <main class="front-page">
+          <main id="maincontent" tabindex="-1" class="front-page">
             <div class="front-shell compact-shell">
               <header class="hero compact-hero">
                 <p class="eyebrow">Local board</p>
@@ -228,7 +232,7 @@ export class App {
         `;
       case "settings":
         return `
-          <main class="front-page">
+          <main id="maincontent" tabindex="-1" class="front-page">
             <div class="front-shell compact-shell">
               <header class="hero compact-hero">
                 <p class="eyebrow">Local preferences</p>
@@ -251,7 +255,7 @@ export class App {
 
   private getGameMarkup(room: RoomState | null) {
     return `
-      <main class="game-page">
+      <main id="maincontent" tabindex="-1" class="game-page">
         <header class="game-header">
           <div>
             <p class="eyebrow">Galaxy Shooter</p>
@@ -266,7 +270,7 @@ export class App {
         </header>
         <section class="game-layout">
           <div class="game-stage-shell">
-            <div class="game-root"></div>
+            <div class="game-root" role="img" aria-label="Game canvas — use keyboard to control your ship"></div>
           </div>
           <aside class="game-sidebar">
             <section class="game-card">
@@ -275,7 +279,7 @@ export class App {
             </section>
             <section class="game-card">
               <h2>Combat Feed</h2>
-              <ul id="game-feed" class="feed"></ul>
+              <ul id="game-feed" class="feed" aria-live="polite" aria-relevant="additions"></ul>
             </section>
           </aside>
         </section>
@@ -285,15 +289,18 @@ export class App {
 
   private renderShipPicker(groupName: string) {
     return `
-      <div class="ship-grid">
-        ${SHIP_OPTIONS.map((ship) => `
-          <label class="ship-option ${ship.id === this.selectedShip ? "selected" : ""}">
-            <input type="radio" data-ship-input name="${groupName}" value="${ship.id}" ${ship.id === this.selectedShip ? "checked" : ""} />
-            <span class="ship-option-preview">${shipPreviewSvg(ship.id)}</span>
-            <span class="ship-option-name">${ship.label}</span>
-          </label>
-        `).join("")}
-      </div>
+      <fieldset class="ship-grid-fieldset">
+        <legend class="sr-only">Choose your ship</legend>
+        <div class="ship-grid">
+          ${SHIP_OPTIONS.map((ship) => `
+            <label class="ship-option ${ship.id === this.selectedShip ? "selected" : ""}">
+              <input type="radio" class="sr-only" data-ship-input name="${groupName}" value="${ship.id}" ${ship.id === this.selectedShip ? "checked" : ""} />
+              <span class="ship-option-preview" aria-hidden="true">${shipPreviewSvg(ship.id)}</span>
+              <span class="ship-option-name">${ship.label}</span>
+            </label>
+          `).join("")}
+        </div>
+      </fieldset>
     `;
   }
 
@@ -713,6 +720,18 @@ export class App {
 
   private normalizeRoomCode(value: string) {
     return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ROOM_CODE_LENGTH);
+  }
+
+  private getScreenTitle(): string {
+    switch (this.state.screen) {
+      case "home": return "Galaxy Shooter";
+      case "lobby": return `Lobby ${this.state.room?.roomCode ?? ""} — Galaxy Shooter`;
+      case "game": return `Playing ${this.state.room?.roomCode ?? ""} — Galaxy Shooter`;
+      case "results": return `Results — Galaxy Shooter`;
+      case "scores": return "High Scores — Galaxy Shooter";
+      case "settings": return "Settings — Galaxy Shooter";
+      default: return "Galaxy Shooter";
+    }
   }
 
   private escape(value: string) {
