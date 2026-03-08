@@ -28,7 +28,7 @@ param webPubSubSku string = 'Free_F1'
 
 @description('Static Web App SKU. Use Free for dev/test, Standard for production.')
 @allowed(['Free', 'Standard'])
-param staticWebAppSku string = 'Free'
+param staticWebAppSku string = 'Standard'
 
 @description('Minimum replica count for the API. Use 0 for dev/test (scale to zero).')
 @minValue(0)
