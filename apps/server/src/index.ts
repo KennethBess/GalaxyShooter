@@ -14,7 +14,7 @@ import type {
   RealtimeNegotiationRequest
 } from "../../../packages/shared/src/index.js";
 import { TICK_RATE } from "../../../packages/shared/src/index.js";
-import { logError, logInfo, requestContext, trackRequest } from "./logger.js";
+import { gameMetrics, logError, logInfo, requestContext, trackRequest } from "./logger.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 import { normalizeRoomCode } from "./runtime.js";
 
@@ -302,6 +302,15 @@ const shutdown = async () => {
   wss?.close();
   server.close();
   await dispose();
+
+  // Flush OpenTelemetry before exit
+  try {
+    const { trace } = await import("@opentelemetry/api");
+    const provider = trace.getTracerProvider();
+    if ("forceFlush" in provider && typeof provider.forceFlush === "function") {
+      await (provider.forceFlush as () => Promise<void>)();
+    }
+  } catch { /* best effort */ }
 };
 
 process.on("SIGINT", () => {

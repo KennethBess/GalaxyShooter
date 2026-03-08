@@ -1,14 +1,9 @@
+import { metrics, trace } from "@opentelemetry/api";
 import type { Request, Response } from "express";
-import { telemetryClient } from "./telemetry.js";
+import { telemetryEnabled } from "./telemetry.js";
 
 type LogLevel = "info" | "warn" | "error";
 type LogContext = Record<string, unknown>;
-
-const severityMap: Record<LogLevel, number> = {
-  info: 1,
-  warn: 2,
-  error: 3
-};
 
 const toStringProps = (context: LogContext): Record<string, string> =>
   Object.fromEntries(
@@ -23,22 +18,46 @@ const formatLog = (level: LogLevel, message: string, context: LogContext = {}) =
     ...context
   });
 
-const trackTrace = (level: LogLevel, message: string, context: LogContext = {}) => {
-  telemetryClient?.trackTrace({
-    message,
-    severity: severityMap[level],
-    properties: toStringProps(context)
-  });
+const tracer = trace.getTracer("galaxy-shooter-server");
+const meter = metrics.getMeter("galaxy-shooter-server");
+
+const gameMetrics = {
+  roomsCreated: meter.createCounter("game.rooms_created", { description: "Total rooms created" }),
+  matchesStarted: meter.createCounter("game.matches_started", { description: "Total matches started" }),
+  matchesCompleted: meter.createCounter("game.matches_completed", { description: "Total matches completed" }),
+  playersConnected: meter.createCounter("game.players_connected", { description: "Total player connections" }),
+  playersDisconnected: meter.createCounter("game.players_disconnected", { description: "Total player disconnections" }),
+  tickDuration: meter.createHistogram("game.tick_duration_ms", { description: "Game tick processing time in ms" }),
 };
+
+export { gameMetrics };
 
 export const logInfo = (message: string, context?: LogContext) => {
   console.info(formatLog("info", message, context));
-  trackTrace("info", message, context);
+  if (telemetryEnabled) {
+    const span = tracer.startSpan("log.info");
+    span.setAttribute("log.message", message);
+    if (context) {
+      for (const [k, v] of Object.entries(toStringProps(context))) {
+        span.setAttribute(`log.${k}`, v);
+      }
+    }
+    span.end();
+  }
 };
 
 export const logWarn = (message: string, context?: LogContext) => {
   console.warn(formatLog("warn", message, context));
-  trackTrace("warn", message, context);
+  if (telemetryEnabled) {
+    const span = tracer.startSpan("log.warn");
+    span.setAttribute("log.message", message);
+    if (context) {
+      for (const [k, v] of Object.entries(toStringProps(context))) {
+        span.setAttribute(`log.${k}`, v);
+      }
+    }
+    span.end();
+  }
 };
 
 export const logError = (message: string, error?: unknown, context: LogContext = {}) => {
@@ -53,13 +72,19 @@ export const logError = (message: string, error?: unknown, context: LogContext =
       : {};
 
   const fullContext = { ...context, ...errorContext };
-
   console.error(formatLog("error", message, fullContext));
-  telemetryClient?.trackException({
-    exception: error instanceof Error ? error : new Error(message),
-    properties: toStringProps(fullContext)
-  });
-  trackTrace("error", message, fullContext);
+
+  if (telemetryEnabled) {
+    const span = tracer.startSpan("log.error");
+    span.setAttribute("log.message", message);
+    for (const [k, v] of Object.entries(toStringProps(fullContext))) {
+      span.setAttribute(`log.${k}`, v);
+    }
+    if (error instanceof Error) {
+      span.recordException(error);
+    }
+    span.end();
+  }
 };
 
 export const requestContext = (req: Request, res: Response) => ({
@@ -70,14 +95,16 @@ export const requestContext = (req: Request, res: Response) => ({
 });
 
 export const trackRequest = (req: Request, res: Response, durationMs: number) => {
-  telemetryClient?.trackRequest({
-    name: `${req.method} ${req.route?.path ?? req.path}`,
-    url: `${req.protocol}://${req.get("host")}${req.originalUrl}`,
-    resultCode: String(res.statusCode),
-    success: res.statusCode < 500,
-    duration: durationMs,
-    time: new Date(Date.now() - durationMs),
-    properties: toStringProps(requestContext(req, res))
-  });
+  if (!telemetryEnabled) return;
+  const span = tracer.startSpan(`HTTP ${req.method} ${req.route?.path ?? req.path}`);
+  span.setAttribute("http.method", req.method);
+  span.setAttribute("http.url", `${req.protocol}://${req.get("host")}${req.originalUrl}`);
+  span.setAttribute("http.status_code", res.statusCode);
+  span.setAttribute("http.duration_ms", durationMs);
+  const ctx = requestContext(req, res);
+  for (const [k, v] of Object.entries(toStringProps(ctx))) {
+    span.setAttribute(`request.${k}`, v);
+  }
+  span.end();
 };
 
