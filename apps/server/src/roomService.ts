@@ -13,8 +13,9 @@ import type { RoomRuntimeRegistry } from "./runtimeRegistry.js";
 export class RoomService {
   private readonly ownedRooms = new Set<string>();
   private lastLeaseRenewalMs = 0;
-  private readonly broadcastInFlight = new Set<string>();
-  private readonly pendingBroadcast = new Map<string, { roomCode: string; messages: readonly ServerMessage[] }>();
+  private readonly stateCache = new Map<string, RoomState>();
+  private readonly saveInFlight = new Set<string>();
+  private readonly pendingSave = new Map<string, RoomState>();
 
   constructor(
     private readonly repository: RoomRepository,
@@ -64,6 +65,7 @@ export class RoomService {
     };
 
     await this.repository.save(state);
+    this.stateCache.set(normalizeRoomCode(state.roomCode), state);
     await this.directory.setOwner(roomCode, this.instanceId);
     this.ownedRooms.add(normalizeRoomCode(roomCode));
     this.runtimes.create(roomCode, [host.playerId]);
@@ -136,8 +138,9 @@ export class RoomService {
   async connectPlayer(roomCode: string, playerId: string, socket?: WebSocket): Promise<RoomState> {
     const state = await this.validatePlayer(roomCode, playerId);
     const runtime = this.getOrCreateRuntime(state);
-    if (await this.resetStaleMatchIfNeeded(state, runtime)) {
+    if (this.resetStaleMatchIfNeeded(state, runtime)) {
       logInfo("Recovered stale room state on connect", { roomCode: state.roomCode, playerId });
+      await this.repository.save(state);
     }
     const player = state.players.find((candidate) => candidate.playerId === playerId);
     if (!player) {
@@ -159,7 +162,8 @@ export class RoomService {
   }
 
   async disconnectPlayer(roomCode: string, playerId: string): Promise<void> {
-    const state = await this.repository.get(roomCode);
+    const code = normalizeRoomCode(roomCode);
+    const state = this.stateCache.get(code) ?? await this.repository.get(roomCode);
     const runtime = this.runtimes.get(roomCode);
     if (!state || !runtime) {
       return;
@@ -177,7 +181,8 @@ export class RoomService {
 
     const timeout = setTimeout(() => {
       void (async () => {
-        const latestState = await this.repository.get(state.roomCode);
+        const latestCode = normalizeRoomCode(state.roomCode);
+        const latestState = this.stateCache.get(latestCode) ?? await this.repository.get(state.roomCode);
         const latestRuntime = this.runtimes.get(state.roomCode);
         if (!latestState || !latestRuntime) {
           return;
@@ -215,20 +220,26 @@ export class RoomService {
         continue;
       }
       try {
-        const state = await this.repository.get(roomCode);
+        const state = this.stateCache.get(roomCode) ?? await this.repository.get(roomCode);
         if (!state) {
           this.runtimes.delete(roomCode);
           this.ownedRooms.delete(roomCode);
           continue;
         }
-        if (await this.resetStaleMatchIfNeeded(state, runtime)) {
-          await this.emitDistributed(state.roomCode, [{ type: "room_state", payload: state }]);
+        this.stateCache.set(roomCode, state);
+        if (this.resetStaleMatchIfNeeded(state, runtime)) {
+          this.scheduleSave(state);
+          void this.emitDistributed(state.roomCode, [{ type: "room_state", payload: state }]).catch(
+            (error) => logError("Broadcast failed for room", error, { roomCode })
+          );
           continue;
         }
         const messages = this.matches.tick(state, runtime, deltaMs);
         if (messages.length > 0) {
-          await this.repository.save(state);
-          this.scheduleBroadcast(state.roomCode, messages);
+          this.scheduleSave(state);
+          void this.emitDistributed(state.roomCode, messages).catch(
+            (error) => logError("Broadcast failed for room", error, { roomCode })
+          );
         }
       } catch (error) {
         logError("Tick failed for room", error, { roomCode });
@@ -245,7 +256,7 @@ export class RoomService {
     if (owner !== this.instanceId) {
       return;
     }
-    const state = await this.repository.get(command.roomCode);
+    const state = this.stateCache.get(normalizedRoomCode) ?? await this.repository.get(command.roomCode);
     if (!state) {
       return;
     }
@@ -273,7 +284,8 @@ export class RoomService {
   }
 
   private async processOwnerMessage(state: RoomState, runtime: RoomRuntime, playerId: string, message: ClientMessage): Promise<void> {
-    if (await this.resetStaleMatchIfNeeded(state, runtime)) {
+    if (this.resetStaleMatchIfNeeded(state, runtime)) {
+      await this.repository.save(state);
       await this.emitDistributed(state.roomCode, [{ type: "room_state", payload: state }]);
     }
 
@@ -353,7 +365,8 @@ export class RoomService {
   }
 
   private async removePlayer(roomCode: string, playerId: string): Promise<void> {
-    const state = await this.repository.get(roomCode);
+    const code = normalizeRoomCode(roomCode);
+    const state = this.stateCache.get(code) ?? await this.repository.get(roomCode);
     const runtime = this.runtimes.get(roomCode);
     if (!state || !runtime) {
       return;
@@ -373,7 +386,10 @@ export class RoomService {
     if (state.players.length === 0) {
       this.connections.clearRoom(state.roomCode);
       this.runtimes.delete(state.roomCode);
-      this.ownedRooms.delete(normalizeRoomCode(state.roomCode));
+      const normalized = normalizeRoomCode(state.roomCode);
+      this.ownedRooms.delete(normalized);
+      this.stateCache.delete(normalized);
+      this.pendingSave.delete(normalized);
       await this.directory.remove(state.roomCode);
       await this.repository.delete(state.roomCode);
       return;
@@ -448,37 +464,43 @@ export class RoomService {
     });
   }
 
-  /** Fire-and-forget broadcast with latest-wins: if a broadcast is already in flight for a room, the newest messages replace any queued ones. */
-  private scheduleBroadcast(roomCode: string, messages: readonly ServerMessage[]) {
-    this.pendingBroadcast.set(roomCode, { roomCode, messages });
-    if (this.broadcastInFlight.has(roomCode)) {
+  /** Fire-and-forget persist with latest-wins: only the most recent state is written to Redis. */
+  private scheduleSave(state: RoomState) {
+    const code = normalizeRoomCode(state.roomCode);
+    this.stateCache.set(code, state);
+    this.pendingSave.set(code, state);
+    if (this.saveInFlight.has(code)) {
       return;
     }
-    void this.drainBroadcast(roomCode);
+    void this.drainSave(code);
   }
 
-  private async drainBroadcast(roomCode: string) {
-    this.broadcastInFlight.add(roomCode);
+  private async drainSave(code: string) {
+    this.saveInFlight.add(code);
     try {
-      while (this.pendingBroadcast.has(roomCode)) {
-        const { messages } = this.pendingBroadcast.get(roomCode)!;
-        this.pendingBroadcast.delete(roomCode);
+      while (this.pendingSave.has(code)) {
+        const state = this.pendingSave.get(code)!;
+        this.pendingSave.delete(code);
         try {
-          await this.emitDistributed(roomCode, messages);
+          await this.repository.save(state);
         } catch (error) {
-          logError("Broadcast failed for room", error, { roomCode });
+          logError("Persist failed for room", error, { roomCode: code });
         }
       }
     } finally {
-      this.broadcastInFlight.delete(roomCode);
+      this.saveInFlight.delete(code);
     }
   }
 
   private async getState(roomCode: string): Promise<RoomState> {
-    const state = await this.repository.get(normalizeRoomCode(roomCode));
+    const code = normalizeRoomCode(roomCode);
+    const cached = this.stateCache.get(code);
+    if (cached) return cached;
+    const state = await this.repository.get(code);
     if (!state) {
       throw new Error("Room not found");
     }
+    this.stateCache.set(code, state);
     return state;
   }
 
@@ -489,7 +511,7 @@ export class RoomService {
     );
   }
 
-  private async resetStaleMatchIfNeeded(state: RoomState, runtime: RoomRuntime) {
+  private resetStaleMatchIfNeeded(state: RoomState, runtime: RoomRuntime): boolean {
     if (state.status !== "in_match" || runtime.match) {
       return false;
     }
@@ -505,7 +527,6 @@ export class RoomService {
       runtime.inputs.set(playerId, defaultInputState());
     }
     state.updatedAt = Date.now();
-    await this.repository.save(state);
     return true;
   }
 
