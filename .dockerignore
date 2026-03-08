@@ -4,5 +4,11 @@ dist/
 coverage/
 .git/
 .azure/
-apps/client/dist/
-apps/server/dist/
+.github/
+.vscode/
+infra/
+scripts/
+apps/client/
+*.md
+*.log
+.env*
