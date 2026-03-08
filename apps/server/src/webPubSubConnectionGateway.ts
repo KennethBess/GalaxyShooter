@@ -51,11 +51,6 @@ export class WebPubSubConnectionGateway implements ConnectionGateway {
 
   async broadcastToRoom(roomCode: string, message: ServerMessage) {
     const members = [...(this.roomMembers.get(roomCode) ?? [])];
-    logInfo("Broadcasting realtime message to room members", {
-      roomCode,
-      messageType: message.type,
-      memberCount: members.length
-    });
     if (members.length === 0) {
       return;
     }

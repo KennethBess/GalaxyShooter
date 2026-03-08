@@ -438,14 +438,7 @@ export class RoomService {
       return;
     }
 
-    logInfo("Broadcasting room messages", {
-      roomCode,
-      messageTypes: messages.map((message) => message.type).join(","),
-      count: messages.length
-    });
-    for (const message of messages) {
-      await this.connections.broadcastToRoom(roomCode, message);
-    }
+    await Promise.all(messages.map((message) => this.connections.broadcastToRoom(roomCode, message)));
     await this.bus.publishEvents({
       roomCode,
       originInstanceId: this.instanceId,

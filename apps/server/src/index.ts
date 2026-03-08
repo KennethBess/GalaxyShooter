@@ -278,7 +278,7 @@ wss?.on("connection", async (socket, request) => {
 
 const TICK_MS = 1000 / TICK_RATE;
 let tickTimer: ReturnType<typeof setTimeout>;
-const scheduleTick = () => {
+const scheduleTick = (delay: number = TICK_MS) => {
   tickTimer = setTimeout(async () => {
     const tickStart = Date.now();
     try {
@@ -286,9 +286,10 @@ const scheduleTick = () => {
     } catch (error) {
       logError("Room tick failed", error);
     }
-    gameMetrics.tickDuration.record(Date.now() - tickStart);
-    scheduleTick();
-  }, TICK_MS);
+    const tickDuration = Date.now() - tickStart;
+    gameMetrics.tickDuration.record(tickDuration);
+    scheduleTick(Math.max(1, TICK_MS - tickDuration));
+  }, delay);
 };
 scheduleTick();
 

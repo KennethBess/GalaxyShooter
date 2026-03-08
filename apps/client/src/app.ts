@@ -635,11 +635,44 @@ export class App {
   }
 
   private handleSocketClose() {
+    this.connection = null;
+    if (this.state.screen === "game" && this.session) {
+      this.autoReconnect();
+      return;
+    }
     if (this.state.room?.status === "in_match") {
       this.state.notice = "Connection lost. If the room still exists you can rejoin with the same code.";
     }
-    this.connection = null;
     this.render();
+  }
+
+  private autoReconnect(attempt = 0) {
+    const maxAttempts = 5;
+    if (attempt >= maxAttempts || !this.session) {
+      this.state.notice = "Connection lost after multiple retries.";
+      this.render();
+      return;
+    }
+    const delayMs = Math.min(1000 * 2 ** attempt, 8000);
+    this.state.notice = `Reconnecting (attempt ${attempt + 1}/${maxAttempts})...`;
+    this.render();
+    setTimeout(async () => {
+      if (!this.session) {
+        return;
+      }
+      try {
+        this.connection = new RoomConnection(this.session.roomCode, this.session.playerId);
+        await this.connection.connect(
+          (message) => this.handleServerMessage(message),
+          () => this.handleSocketClose()
+        );
+        this.state.notice = "";
+        this.render();
+      } catch {
+        this.connection = null;
+        this.autoReconnect(attempt + 1);
+      }
+    }, delayMs);
   }
 
   private async tryReconnect() {
