@@ -230,7 +230,8 @@ class GameScene extends Phaser.Scene {
   private snapshot: SnapshotState | null = null;
   private selfPlayerId: string | null = null;
   private lastSnapshotMs = 0;
-  private static readonly STALE_THRESHOLD_MS = 3000;
+  private static readonly STALE_WARN_MS = 5000;
+  private static readonly STALE_LOST_MS = 10000;
   private background?: Phaser.GameObjects.TileSprite;
   private bulletLayer?: Phaser.GameObjects.Graphics;
   private hud?: Phaser.GameObjects.Text;
@@ -313,10 +314,12 @@ class GameScene extends Phaser.Scene {
     this.updatePredictedBullets(delta);
     this.interpolateSprites(delta);
 
-    if (this.snapshot && this.lastSnapshotMs > 0) {
+    if (this.snapshot && this.selfPlayerId && this.lastSnapshotMs > 0) {
       const staleDuration = performance.now() - this.lastSnapshotMs;
-      if (staleDuration > GameScene.STALE_THRESHOLD_MS) {
+      if (staleDuration > GameScene.STALE_LOST_MS) {
         this.hud?.setText(`${this.snapshot.stageLabel}   Score ${this.snapshot.score}   ⚠ CONNECTION LOST`);
+      } else if (staleDuration > GameScene.STALE_WARN_MS) {
+        this.hud?.setText(`${this.snapshot.stageLabel}   Score ${this.snapshot.score}   Reconnecting...`);
       }
     }
   }
