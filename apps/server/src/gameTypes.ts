@@ -32,6 +32,8 @@ export interface RuntimePlayer {
   respawnMs: number;
   invulnerableMs: number;
   pendingBomb: boolean;
+  shieldMs: number;
+  rapidFireMs: number;
 }
 
 export interface RuntimeEnemy {
@@ -65,7 +67,7 @@ export interface RuntimeBullet {
 
 export interface RuntimePickup {
   id: string;
-  kind: "weapon" | "bomb";
+  kind: "weapon" | "bomb" | "shield" | "rapid_fire";
   x: number;
   y: number;
   vy: number;
@@ -137,6 +139,8 @@ export const FIGHTER_FIRE_COOLDOWN_MS = 1100;
 export const PICKUP_DROP_SPEED = 120;
 export const PICKUP_BOSS_DROP_SPEED = 110;
 export const PICKUP_COLLECT_RADIUS = 28;
+export const SHIELD_DURATION_MS = 5000;
+export const RAPID_FIRE_DURATION_MS = 4000;
 
 // --- Gameplay constants ---
 export const PLAYER_HITBOX_RADIUS = 16;

@@ -235,6 +235,7 @@ class GameScene extends Phaser.Scene {
   private background?: Phaser.GameObjects.TileSprite;
   private bulletLayer?: Phaser.GameObjects.Graphics;
   private hud?: Phaser.GameObjects.Text;
+  private effectHud?: Phaser.GameObjects.Text;
   private inputState: InputState = { up: false, down: false, left: false, right: false, shoot: false };
   private predictedShotCooldownMs = 0;
   private inputRepeatMs = 0;
@@ -263,6 +264,12 @@ class GameScene extends Phaser.Scene {
       color: "#d8ecff"
     });
     this.hud.setDepth(100);
+    this.effectHud = this.add.text(20, 48, "", {
+      fontFamily: "monospace",
+      fontSize: "16px",
+      color: "#ffffff"
+    });
+    this.effectHud.setDepth(100);
     this.bulletLayer = this.add.graphics();
     this.bulletLayer.setDepth(7);
 
@@ -339,6 +346,7 @@ class GameScene extends Phaser.Scene {
     this.syncBullets();
     this.syncPickups();
     this.hud?.setText(`${snapshot.stageLabel}   Score ${snapshot.score}   Team Lives ${snapshot.teamLives}`);
+    this.syncEffectHud(snapshot);
   }
 
   reset() {
@@ -347,6 +355,7 @@ class GameScene extends Phaser.Scene {
     this.lastSnapshotMs = 0;
     this.clearObjects();
     this.hud?.setText("Waiting for room to start");
+    this.effectHud?.setText("");
   }
 
   private predictSelfMovement(deltaMs: number) {
@@ -553,6 +562,20 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  private static readonly PICKUP_LABEL: Record<string, string> = {
+    weapon: "W",
+    bomb: "B",
+    shield: "S",
+    rapid_fire: "R"
+  };
+
+  private static readonly PICKUP_COLOR: Record<string, string> = {
+    weapon: "#ffe38f",
+    bomb: "#8fffcb",
+    shield: "#62b8ff",
+    rapid_fire: "#ff88ff"
+  };
+
   private syncPickups() {
     const liveIds = new Set(this.snapshot?.pickups.map((pickup) => pickup.id));
     for (const [id, sprite] of this.pickups) {
@@ -563,19 +586,40 @@ class GameScene extends Phaser.Scene {
     }
 
     for (const pickup of this.snapshot?.pickups ?? []) {
+      const label = GameScene.PICKUP_LABEL[pickup.kind] ?? "?";
+      const color = GameScene.PICKUP_COLOR[pickup.kind] ?? "#ffffff";
       let sprite = this.pickups.get(pickup.id);
       if (!sprite) {
-        sprite = this.add.text(pickup.x, pickup.y, pickup.kind === "weapon" ? "W" : "B", {
+        sprite = this.add.text(pickup.x, pickup.y, label, {
           fontFamily: "monospace",
           fontSize: "22px",
-          color: pickup.kind === "weapon" ? "#ffe38f" : "#8fffcb"
+          color
         });
         sprite.setOrigin(0.5);
         this.pickups.set(pickup.id, sprite);
       }
       sprite.setPosition(pickup.x, pickup.y);
-      sprite.setColor(pickup.kind === "weapon" ? "#ffe38f" : "#8fffcb");
+      sprite.setColor(color);
     }
+  }
+
+  private syncEffectHud(snapshot: SnapshotState) {
+    if (!this.effectHud) {
+      return;
+    }
+    const self = snapshot.players.find((player) => player.playerId === this.selfPlayerId);
+    if (!self) {
+      this.effectHud.setText("");
+      return;
+    }
+    const badges: string[] = [];
+    if (self.shieldActive) {
+      badges.push("[SHIELD]");
+    }
+    if (self.rapidFireActive) {
+      badges.push("[RAPID FIRE]");
+    }
+    this.effectHud.setText(badges.join("  "));
   }
 }
 

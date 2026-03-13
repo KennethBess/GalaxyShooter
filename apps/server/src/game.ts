@@ -16,7 +16,7 @@ import {
 import {
   BOMB_DAMAGE_BOSS, BOMB_DAMAGE_NORMAL,
   BOSS_ENTER_Y, BOSS_WALL_MARGIN,
-  clamp, 
+  clamp,
   DIFFICULTY_EXTRA_PER_PLAYER, getStage, getStageHotStartMs, INVULNERABLE_AFTER_RESPAWN_MS,
   type InputState, 
   KAMIKAZE_MIN_VY, KAMIKAZE_STATS,LANES, type MatchRuntime, PLAYER_CLAMP_X_MAX_OFFSET, 
@@ -86,6 +86,8 @@ const updatePlayers = (match: MatchRuntime, inputs: Map<string, InputState>, del
     }
     player.invulnerableMs = Math.max(0, player.invulnerableMs - deltaMs);
     player.shotCooldownMs = Math.max(0, player.shotCooldownMs - deltaMs);
+    player.shieldMs = Math.max(0, player.shieldMs - deltaMs);
+    player.rapidFireMs = Math.max(0, player.rapidFireMs - deltaMs);
 
     if (!player.alive) {
       continue;
@@ -113,7 +115,7 @@ const updatePlayers = (match: MatchRuntime, inputs: Map<string, InputState>, del
 
     if (input.shoot && player.shotCooldownMs === 0) {
       spawnPlayerVolley(match, player);
-      player.shotCooldownMs = PLAYER_FIRE_INTERVAL_MS;
+      player.shotCooldownMs = player.rapidFireMs > 0 ? PLAYER_FIRE_INTERVAL_MS / 2 : PLAYER_FIRE_INTERVAL_MS;
     }
   }
 };
@@ -189,7 +191,9 @@ export const createMatch = (roomCode: string, mode: GameMode, players: PlayerSlo
       shotCooldownMs: 0,
       respawnMs: 0,
       invulnerableMs: 0,
-      pendingBomb: false
+      pendingBomb: false,
+      shieldMs: 0,
+      rapidFireMs: 0
     });
   });
 
@@ -266,7 +270,9 @@ export const updateMatch = (match: MatchRuntime, inputs: Map<string, InputState>
       alive: player.alive,
       bombs: player.bombs,
       weaponLevel: player.weaponLevel,
-      score: player.score
+      score: player.score,
+      shieldActive: player.shieldMs > 0,
+      rapidFireActive: player.rapidFireMs > 0
     });
   }
 

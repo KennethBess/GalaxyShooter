@@ -24,9 +24,11 @@ import {
   KAMIKAZE_STATS,
   PLAYER_BULLET_DAMAGE,
   PLAYER_HITBOX_RADIUS,
+  RAPID_FIRE_DURATION_MS,
   SCORE_BOSS,
   SCORE_FIGHTER,
   SCORE_HEAVY,
+  SHIELD_DURATION_MS,
 } from "../src/gameTypes.js";
 
 function createMockPlayer(overrides: Partial<RuntimePlayer> = {}): RuntimePlayer {
@@ -44,6 +46,8 @@ function createMockPlayer(overrides: Partial<RuntimePlayer> = {}): RuntimePlayer
     respawnMs: 0,
     invulnerableMs: 0,
     pendingBomb: false,
+    shieldMs: 0,
+    rapidFireMs: 0,
     ...overrides,
   };
 }
@@ -205,6 +209,15 @@ describe("hitPlayer", () => {
     assert.equal(player.alive, true);
     assert.equal(match.teamLives, 6);
   });
+
+  it("does not damage a player with shield active", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.shieldMs = 5000;
+    hitPlayer(match, player);
+    assert.equal(player.alive, true);
+    assert.equal(match.teamLives, 6);
+  });
 });
 
 describe("killEnemy", () => {
@@ -308,6 +321,30 @@ describe("resolveCollisions", () => {
     resolveCollisions(match);
     assert.equal(match.enemies.length, 0, "enemy should be removed after body collision");
     assert.equal(player.alive, false, "player should be killed by body collision");
+  });
+});
+
+describe("power-up pickup collection", () => {
+  it("collecting shield pickup sets shieldMs on player", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 300;
+    player.y = 300;
+    match.pickups.push({ id: "pu-1", kind: "shield", x: 300, y: 300, vy: 0 });
+    resolveCollisions(match);
+    assert.equal(match.pickups.length, 0, "pickup should be consumed");
+    assert.equal(player.shieldMs, SHIELD_DURATION_MS);
+  });
+
+  it("collecting rapid_fire pickup sets rapidFireMs on player", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 300;
+    player.y = 300;
+    match.pickups.push({ id: "pu-2", kind: "rapid_fire", x: 300, y: 300, vy: 0 });
+    resolveCollisions(match);
+    assert.equal(match.pickups.length, 0, "pickup should be consumed");
+    assert.equal(player.rapidFireMs, RAPID_FIRE_DURATION_MS);
   });
 });
 

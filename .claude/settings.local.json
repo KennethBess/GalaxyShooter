@@ -18,7 +18,26 @@
       "Bash(gh issue:*)",
       "Bash(gh repo:*)",
       "Bash(node --import tsx --test apps/server/test/*.test.ts)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git push:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//c/Users/KennethBess/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.2/skills/writing-plans/**)",
+      "Read(//c/Users/KennethBess/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.2/skills/subagent-driven-development/**)",
+      "Bash(npm install:*)",
+      "Bash(npx openspec:*)",
+      "Bash(echo \"CLI test result: $?\")",
+      "Bash(echo \"EXIT_CODE: $?\")",
+      "Read(//c/Users/KennethBess/AppData/Roaming/openspec/**)",
+      "Bash(grep -E '^\\\\| `/opsx:' c:/Dev/Codex/Test01/CLAUDE.md)",
+      "Bash(git -C C:/Dev/Codex/Test01 log --oneline -10)",
+      "Bash(node -e \"const pkg = require\\(''C:/Dev/Codex/Test01/package-lock.json''\\); console.log\\(pkg.packages[''node_modules/@fission-ai/openspec'']?.version || ''NOT FOUND''\\)\")",
+      "Bash(openspec new:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Dev\\Codex\\Test01\\docs\\superpowers",
+      "C:\\Users\\KennethBess\\AppData\\Roaming\\openspec"
     ]
   }
 }

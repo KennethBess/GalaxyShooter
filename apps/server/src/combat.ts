@@ -10,6 +10,7 @@ import {
   KAMIKAZE_STATS, LANES, 
   type MatchRuntime, nextId,
   PICKUP_BOSS_DROP_SPEED, PICKUP_COLLECT_RADIUS, PICKUP_DROP_SPEED,
+  RAPID_FIRE_DURATION_MS, SHIELD_DURATION_MS,
   PLAYER_BULLET_DAMAGE, PLAYER_BULLET_OFFSET_Y, PLAYER_BULLET_RADIUS, PLAYER_BULLET_SPEED,
   PLAYER_HITBOX_RADIUS, queueEvent,type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer, 
   SCORE_BOSS, SCORE_FIGHTER, SCORE_HEAVY,
@@ -74,10 +75,12 @@ export const awardScore = (match: MatchRuntime, playerId: string | undefined, po
 
 export const maybeDropPickup = (match: MatchRuntime, enemy: RuntimeEnemy) => {
   if (enemy.boss) {
-    match.pickups.push({ id: nextId(match, "pickup"), kind: "bomb", x: enemy.x, y: enemy.y, vy: PICKUP_BOSS_DROP_SPEED });
+    match.pickups.push({ id: nextId(match, "pickup"), kind: "shield", x: enemy.x, y: enemy.y, vy: PICKUP_BOSS_DROP_SPEED });
     return;
   }
   if (match.idCounter % 5 === 0) {
+    match.pickups.push({ id: nextId(match, "pickup"), kind: "rapid_fire", x: enemy.x, y: enemy.y, vy: PICKUP_DROP_SPEED });
+  } else if (match.idCounter % 7 === 0) {
     match.pickups.push({ id: nextId(match, "pickup"), kind: "weapon", x: enemy.x, y: enemy.y, vy: PICKUP_DROP_SPEED });
   }
 };
@@ -135,7 +138,7 @@ export const fireEnemy = (match: MatchRuntime, enemy: RuntimeEnemy) => {
 };
 
 export const hitPlayer = (match: MatchRuntime, player: RuntimePlayer) => {
-  if (!player.alive || player.invulnerableMs > 0) {
+  if (!player.alive || player.invulnerableMs > 0 || player.shieldMs > 0) {
     return;
   }
   player.alive = false;
@@ -266,8 +269,12 @@ export const resolveCollisions = (match: MatchRuntime) => {
     }
     if (pickup.kind === "weapon") {
       collector.weaponLevel = clamp(collector.weaponLevel + 1, 1, 3);
-    } else {
+    } else if (pickup.kind === "bomb") {
       collector.bombs = clamp(collector.bombs + 1, 0, 3);
+    } else if (pickup.kind === "shield") {
+      collector.shieldMs = SHIELD_DURATION_MS;
+    } else if (pickup.kind === "rapid_fire") {
+      collector.rapidFireMs = RAPID_FIRE_DURATION_MS;
     }
     queueEvent(match, "pickup", `${collector.name} picked up ${pickup.kind}`);
   }
