@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Exo 2", sans-serif;
   --bg-top: #16304f;
   --bg-mid: #07101d;
   --bg-bottom: #04070d;
@@ -168,6 +168,12 @@ input::placeholder {
 }
 
 .hero h1,
+h1,
+h2,
+h3 {
+  font-family: "Orbitron", sans-serif;
+}
+
 .game-header h1 {
   margin: 0;
   line-height: 0.9;
