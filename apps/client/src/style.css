@@ -77,13 +77,24 @@ body,
   min-height: 100%;
 }
 
+@keyframes starDrift {
+  from { background-position: 0 0, 150px 80px, 250px 180px, top center, 80% 20%, 0 0; }
+  to   { background-position: 600px 600px, 750px 680px, 850px 780px, top center, 80% 20%, 0 0; }
+}
+
 body {
   min-height: 100vh;
   overflow-x: hidden;
-  background:
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.75) 1px, transparent 1px),
+    radial-gradient(circle, rgba(200, 220, 255, 0.45) 1px, transparent 1px),
+    radial-gradient(circle, rgba(180, 200, 255, 0.25) 1px, transparent 1px),
     radial-gradient(circle at top, rgba(40, 87, 138, 0.45), transparent 35%),
     radial-gradient(circle at 80% 20%, rgba(27, 66, 112, 0.35), transparent 28%),
     linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 42%, var(--bg-bottom) 100%);
+  background-size: 600px 600px, 350px 350px, 200px 200px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: 0 0, 150px 80px, 250px 180px, top center, 80% 20%, 0 0;
+  animation: starDrift 180s linear infinite;
   color: var(--text);
 }
 
