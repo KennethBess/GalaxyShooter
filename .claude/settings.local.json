@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh issue comment 16 --repo KennethBess/GalaxyShooter --body \"Implemented in commit \\\\`9e23787\\\\`.:*)",
+      "Bash(gh issue comment 19 --repo KennethBess/GalaxyShooter --body \"Implemented in commit \\\\`4152dd4\\\\`.:*)",
+      "Bash(gh issue comment 18 --repo KennethBess/GalaxyShooter --body \"Implemented in commit \\\\`92edf7d\\\\`.:*)",
+      "Bash(gh issue comment 17 --repo KennethBess/GalaxyShooter --body \"Implemented in commit \\\\`92edf7d\\\\`.:*)",
+      "Bash(gh issue comment 20 --repo KennethBess/GalaxyShooter --body \"Implemented in commit \\\\`92edf7d\\\\`.:*)",
+      "Bash(gh issue comment 21 --repo KennethBess/GalaxyShooter --body \"Implemented in commit \\\\`92edf7d\\\\`.:*)",
+      "Bash(azd deploy:*)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(git worktree:*)",
+      "Bash(git branch:*)"
+    ]
+  }
+}
