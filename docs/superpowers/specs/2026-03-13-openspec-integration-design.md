@@ -14,7 +14,7 @@ Integrate [OpenSpec](https://github.com/Fission-AI/OpenSpec) into the Galaxy Sho
 
 ## Goals
 
-- Pin OpenSpec as a versioned devDependency so all contributors get it via `npm install`
+- Add OpenSpec as a devDependency (using `latest`) so all contributors get it via `npm install`
 - Initialize the expanded workflow profile (full command set)
 - Document the workflow in `CLAUDE.md` so Claude Code follows it automatically in every session
 
@@ -67,7 +67,7 @@ A new `## Spec-Driven Development` section is added to `CLAUDE.md` covering:
 
 ## File Structure After Setup
 
-```
+```text
 openspec/
   changes/          # active feature specs
   # (archive/ created by /opsx:archive)
