@@ -137,6 +137,7 @@ Before writing any code for a non-trivial feature or change, use `/opsx:propose`
 | `/opsx:ff` | Fast-forward through straightforward tasks |
 | `/opsx:verify` | Verify the current change before marking complete |
 | `/opsx:sync` | Sync agent instructions with current OpenSpec version |
+| `/opsx:explore` | Think through ideas and investigate problems without implementing |
 | `/opsx:bulk-archive` | Archive multiple completed changes at once |
 | `/opsx:onboard` | Onboard a new contributor to the spec-driven workflow |
 
