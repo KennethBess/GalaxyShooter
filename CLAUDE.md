@@ -110,3 +110,46 @@ Provisioned by Azure Bicep in production; set locally in `.env`:
 - Deploy via `azd deploy --no-prompt`
 - `scripts/write-client-env.mjs` runs as a pre-package hook to inject the API URL into the client build
 - Infrastructure defined in `infra/` as Azure Bicep (Container Apps, ACR, Web PubSub, Redis, Static Web App)
+
+## Spec-Driven Development
+
+This project uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for spec-driven development. All non-trivial features must be proposed and designed before any code is written.
+
+### Mandate
+
+Before writing any code for a non-trivial feature or change, use `/opsx:propose` to create a spec. No implementation without a spec.
+
+### Core Flow
+
+```
+/opsx:propose "feature idea"  →  review artifacts  →  /opsx:apply  →  /opsx:archive
+```
+
+### Commands (Expanded Profile)
+
+| Command | Purpose |
+|---------|---------|
+| `/opsx:propose` | Create proposal.md, specs/, design.md, tasks.md for a new change |
+| `/opsx:apply` | Implement all tasks in the current change sequentially |
+| `/opsx:archive` | Move completed change to `openspec/changes/archive/` |
+| `/opsx:new` | Start a new change (alternative to propose) |
+| `/opsx:continue` | Resume work on an in-progress change |
+| `/opsx:ff` | Fast-forward through straightforward tasks |
+| `/opsx:verify` | Verify the current change before marking complete |
+| `/opsx:sync` | Sync agent instructions with current OpenSpec version |
+| `/opsx:bulk-archive` | Archive multiple completed changes at once |
+| `/opsx:onboard` | Onboard a new contributor to the spec-driven workflow |
+
+### Spec Location
+
+Each change lives in `openspec/changes/<feature-name>/`:
+- `proposal.md` — rationale and scope
+- `specs/` — requirements and scenarios
+- `design.md` — technical approach
+- `tasks.md` — implementation checklist
+
+Archived changes move to `openspec/changes/archive/YYYY-MM-DD-<feature-name>/`.
+
+### Maintenance
+
+After upgrading `@fission-ai/openspec`, run `openspec update` from the repo root to refresh agent instructions and activate the latest slash commands.
