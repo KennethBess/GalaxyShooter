@@ -17,10 +17,6 @@ export class WebPubSubConnectionGateway implements ConnectionGateway {
       playerId,
       memberCount: members.size
     });
-    // Join the player to the room group so broadcastToRoom can use sendToGroup
-    void this.serviceClient.addUserToGroup(roomCode, playerId).catch((error) => {
-      logError("Failed to add player to Web PubSub group", error, { roomCode, playerId });
-    });
   }
 
   detach(roomCode: string, playerId: string) {
@@ -29,10 +25,6 @@ export class WebPubSubConnectionGateway implements ConnectionGateway {
       return;
     }
     members.delete(playerId);
-    // Remove player from the room group
-    void this.serviceClient.removeUserFromGroup(roomCode, playerId).catch((error) => {
-      logError("Failed to remove player from Web PubSub group", error, { roomCode, playerId });
-    });
     if (members.size === 0) {
       this.roomMembers.delete(roomCode);
       logInfo("Detached last realtime room member", { roomCode, playerId });
@@ -67,16 +59,7 @@ export class WebPubSubConnectionGateway implements ConnectionGateway {
       return;
     }
 
-    try {
-      await this.serviceClient.sendToGroup(roomCode, message, "json", {
-        abortSignal: AbortSignal.timeout(WebPubSubConnectionGateway.SEND_TIMEOUT_MS)
-      });
-    } catch (error) {
-      logError("Failed to broadcast realtime message to room", error, {
-        roomCode,
-        messageType: message.type
-      });
-    }
+    await Promise.all([...members].map((playerId) => this.sendToPlayer(playerId, message)));
   }
 
   clearRoom(roomCode: string) {
