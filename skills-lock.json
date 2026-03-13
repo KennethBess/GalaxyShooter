@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "github-automation": {
+      "source": "davepoon/buildwithclaude",
+      "sourceType": "github",
+      "computedHash": "e6a97928bee2fdba71684205f77182f874a1de496cd4fec5b4acd296fe5187a7"
+    }
+  }
+}
