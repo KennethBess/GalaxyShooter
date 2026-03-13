@@ -12,7 +12,7 @@ interface AppState {
   result: ResultSummary | null;
   notice: string;
   busy: boolean;
-  eventLog: string[];
+  eventLog: { kind: string; text: string }[];
   openRooms: OpenRoomSummary[];
   roomsBusy: boolean;
 }
@@ -68,6 +68,24 @@ export class App {
     }
     const main = this.root.querySelector<HTMLElement>("#maincontent");
     main?.focus({ preventScroll: true });
+    if (this.state.screen === "results") {
+      this.startResultsAnimation();
+    }
+  }
+
+  private startResultsAnimation() {
+    const el = this.root.querySelector<HTMLElement>("#results-score");
+    if (!el) return;
+    const target = Number(el.dataset.target ?? 0);
+    const duration = 1200;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - (1 - t) * (1 - t);
+      el.textContent = String(Math.round(eased * target));
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 
   private mountGameHost() {
@@ -87,7 +105,7 @@ export class App {
     switch (this.state.screen) {
       case "home":
         return `
-          <main id="maincontent" tabindex="-1" class="front-page landing-page">
+          <main id="maincontent" tabindex="-1" class="front-page landing-page screen-enter">
             <div class="landing-grid">
               <section class="hero landing-hero">
                 <div class="hero-art" aria-hidden="true">${heroBannerSvg()}</div>
@@ -128,7 +146,7 @@ export class App {
         `;
       case "lobby":
         return `
-          <main id="maincontent" tabindex="-1" class="front-page lobby-page">
+          <main id="maincontent" tabindex="-1" class="front-page lobby-page screen-enter">
             <div class="lobby-grid">
               <header class="hero lobby-hero">
                 <p class="eyebrow">Squad Lobby</p>
@@ -187,23 +205,25 @@ export class App {
             </div>
           </main>
         `;
-      case "results":
+      case "results": {
+        const outcome = this.state.result?.outcome === "victory";
+        const finalScore = this.state.result?.score ?? 0;
         return `
-          <main id="maincontent" tabindex="-1" class="front-page">
+          <main id="maincontent" tabindex="-1" class="front-page screen-enter">
             <div class="front-shell compact-shell">
               <header class="hero compact-hero">
-                <p class="eyebrow">Mission ${this.state.result?.outcome === "victory" ? "Cleared" : "Failed"}</p>
-                <h1>${this.state.result?.score ?? 0}</h1>
+                <p class="eyebrow">Mission ${outcome ? "Cleared" : "Failed"}</p>
+                <h1 id="results-score" data-target="${finalScore}">0</h1>
                 <p class="lede">${this.escape(this.state.notice)}</p>
               </header>
-              <section class="front-card">
-                <p>Mode: ${this.state.result?.mode ?? "-"}</p>
-                <p>Stage reached: ${this.state.result?.stageReached ?? 0}</p>
-                <p>Duration: ${Math.round((this.state.result?.durationMs ?? 0) / 1000)}s</p>
+              <section class="front-card ${outcome ? "results-win" : "results-fail"}">
+                <p class="results-row" style="animation-delay:0ms">Mode: ${this.state.result?.mode ?? "-"}</p>
+                <p class="results-row" style="animation-delay:80ms">Stage reached: ${this.state.result?.stageReached ?? 0}</p>
+                <p class="results-row" style="animation-delay:160ms">Duration: ${Math.round((this.state.result?.durationMs ?? 0) / 1000)}s</p>
                 <ul class="roster compact-roster">
-                  ${(this.state.result?.players ?? []).map((player) => `<li><span>${this.escape(player.name)} (${shipLabel(player.shipId)})</span><span>${player.score}</span></li>`).join("")}
+                  ${(this.state.result?.players ?? []).map((player, i) => `<li class="results-row" style="animation-delay:${240 + i * 80}ms"><span>${this.escape(player.name)} (${shipLabel(player.shipId)})</span><span>${player.score}</span></li>`).join("")}
                 </ul>
-                <div class="lobby-actions">
+                <div class="lobby-actions results-row" style="animation-delay:${240 + (this.state.result?.players?.length ?? 0) * 80}ms">
                   ${room?.status === "waiting" ? '<button id="back-lobby" class="primary-button">Back to lobby</button>' : '<button id="back-home" class="primary-button">Front page</button>'}
                   <button id="show-scores" class="secondary-button">High Scores</button>
                 </div>
@@ -211,9 +231,10 @@ export class App {
             </div>
           </main>
         `;
+      }
       case "scores":
         return `
-          <main id="maincontent" tabindex="-1" class="front-page">
+          <main id="maincontent" tabindex="-1" class="front-page screen-enter">
             <div class="front-shell compact-shell">
               <header class="hero compact-hero">
                 <p class="eyebrow">Local board</p>
@@ -232,7 +253,7 @@ export class App {
         `;
       case "settings":
         return `
-          <main id="maincontent" tabindex="-1" class="front-page">
+          <main id="maincontent" tabindex="-1" class="front-page screen-enter">
             <div class="front-shell compact-shell">
               <header class="hero compact-hero">
                 <p class="eyebrow">Local preferences</p>
@@ -255,7 +276,7 @@ export class App {
 
   private getGameMarkup(room: RoomState | null) {
     return `
-      <main id="maincontent" tabindex="-1" class="game-page">
+      <main id="maincontent" tabindex="-1" class="game-page screen-enter">
         <header class="game-header">
           <div>
             <p class="eyebrow">Galaxy Shooter</p>
@@ -363,8 +384,13 @@ export class App {
       }
     }
     if (feed) {
+      const feedKindClass: Record<string, string> = {
+        player_hit: "feed-hit", player_respawn: "feed-respawn",
+        boss_phase: "feed-boss", boss_defeated: "feed-boss",
+        stage_clear: "feed-stage", pickup: "feed-pickup", info: "feed-info"
+      };
       const nextFeedMarkup = this.state.eventLog.length > 0
-        ? this.state.eventLog.map((entry) => `<li>${this.escape(entry)}</li>`).join("")
+        ? this.state.eventLog.map((entry) => `<li class="${feedKindClass[entry.kind] ?? "feed-info"}">${this.escape(entry.text)}</li>`).join("")
         : "<li>Hold formation.</li>";
       if (feed.innerHTML !== nextFeedMarkup) {
         feed.innerHTML = nextFeedMarkup;
@@ -603,7 +629,7 @@ export class App {
       case "match_started":
         this.state.screen = "game";
         this.state.notice = `${message.payload.stageLabel} engaged.`;
-        this.state.eventLog = [`Mode ${message.payload.mode} armed.`];
+        this.state.eventLog = [{ kind: "info", text: `Mode ${message.payload.mode} armed.` }];
         this.render();
         return;
       case "snapshot":
@@ -612,7 +638,7 @@ export class App {
         this.refreshGamePanel();
         return;
       case "game_event":
-        this.state.eventLog = [message.payload.text, ...this.state.eventLog].slice(0, 8);
+        this.state.eventLog = [{ kind: message.payload.kind, text: message.payload.text }, ...this.state.eventLog].slice(0, 8);
         this.refreshGamePanel();
         return;
       case "match_result":

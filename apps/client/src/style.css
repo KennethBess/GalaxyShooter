@@ -879,3 +879,38 @@ h3 {
     white-space: normal;
   }
 }
+
+/* ── Issue #17: Screen fade-in transition ── */
+@keyframes screenFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen-enter {
+  animation: screenFadeIn 200ms ease-out both;
+}
+
+/* ── Issue #20: Combat feed event colors ── */
+#game-feed li { color: var(--muted); }
+#game-feed li.feed-hit       { color: #ff9090; }
+#game-feed li.feed-respawn   { color: #7affd8; }
+#game-feed li.feed-boss      { color: #ffb84d; font-weight: 600; }
+#game-feed li.feed-stage     { color: #ffffff; font-weight: 600; }
+#game-feed li.feed-pickup    { color: #ffe38f; }
+#game-feed li.feed-info      { color: var(--muted); }
+
+/* ── Issue #21: Results win/loss glow + staggered rows ── */
+.results-win {
+  box-shadow: 0 0 60px rgba(127, 213, 255, 0.28), var(--shadow);
+  border: 1px solid rgba(127, 213, 255, 0.25);
+}
+.results-fail {
+  box-shadow: 0 0 60px rgba(255, 100, 80, 0.22), var(--shadow);
+  border: 1px solid rgba(255, 100, 80, 0.2);
+}
+@keyframes resultRowIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.results-row {
+  animation: resultRowIn 250ms ease-out both;
+}

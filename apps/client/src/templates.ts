@@ -52,6 +52,45 @@ export const heroBannerSvg = () => `
         <stop offset="100%" stop-color="#7df5c0" stop-opacity="0.88" />
       </linearGradient>
     </defs>
+    <style>
+      @keyframes coreGlow {
+        0%, 100% { opacity: 0.92; transform: scale(1); }
+        50%       { opacity: 1;    transform: scale(1.06); }
+      }
+      @keyframes beamShimmer {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.5; }
+      }
+      @keyframes shipDriftA {
+        0%, 100% { transform: translate(85px, 72px) scale(1.1) translateY(0px); }
+        50%       { transform: translate(85px, 72px) scale(1.1) translateY(-3px); }
+      }
+      @keyframes shipDriftB {
+        0%, 100% { transform: translate(405px, 68px) scale(1.1) translateY(0px); }
+        50%       { transform: translate(405px, 68px) scale(1.1) translateY(-3px); }
+      }
+      @keyframes shipDriftC {
+        0%, 100% { transform: translate(144px, 94px) translateY(0px); }
+        50%       { transform: translate(144px, 94px) translateY(-2px); }
+      }
+      @keyframes shipDriftD {
+        0%, 100% { transform: translate(219px, 82px) scale(1.08) translateY(0px); }
+        50%       { transform: translate(219px, 82px) scale(1.08) translateY(-2px); }
+      }
+      @keyframes shipDriftE {
+        0%, 100% { transform: translate(294px, 94px) translateY(0px); }
+        50%       { transform: translate(294px, 94px) translateY(-2px); }
+      }
+      #hero-core-group { transform-origin: 260px 49px; animation: coreGlow 3s ease-in-out infinite; }
+      #hero-beam-blue  { animation: beamShimmer 2.4s ease-in-out infinite; }
+      #hero-beam-red   { animation: beamShimmer 2.4s ease-in-out infinite 0.8s; }
+      #hero-beam-green { animation: beamShimmer 2.4s ease-in-out infinite 1.6s; }
+      #hero-ship-a { animation: shipDriftA 4.2s ease-in-out infinite; }
+      #hero-ship-b { animation: shipDriftB 4.2s ease-in-out infinite 1.05s; }
+      #hero-ship-c { animation: shipDriftC 3.8s ease-in-out infinite 0.5s; }
+      #hero-ship-d { animation: shipDriftD 3.8s ease-in-out infinite 1.5s; }
+      #hero-ship-e { animation: shipDriftE 3.8s ease-in-out infinite 2.5s; }
+    </style>
     <rect width="520" height="170" rx="28" fill="url(#hero-bg)" />
     <rect x="1" y="1" width="518" height="168" rx="27" fill="none" stroke="#5eaef0" stroke-opacity="0.2" />
     <ellipse cx="258" cy="58" rx="150" ry="70" fill="url(#hero-core)" />
@@ -67,7 +106,7 @@ export const heroBannerSvg = () => `
       <circle cx="455" cy="95" r="1.4" />
       <circle cx="74" cy="102" r="1.4" />
     </g>
-    <g opacity="0.92">
+    <g id="hero-core-group" opacity="0.92">
       <ellipse cx="260" cy="42" rx="54" ry="18" fill="#163455" />
       <path d="M230 58 Q260 20 290 58" fill="#19375f" stroke="#6dd3ff" stroke-opacity="0.45" />
       <circle cx="260" cy="49" r="12" fill="#ffdc6b" />
@@ -75,22 +114,22 @@ export const heroBannerSvg = () => `
       <path d="M237 63 L221 86 L237 83 Z" fill="#57d9ff" opacity="0.85" />
       <path d="M283 63 L299 86 L283 83 Z" fill="#57d9ff" opacity="0.85" />
     </g>
-    <g transform="translate(85 72) scale(1.1)">
+    <g id="hero-ship-a" transform="translate(85 72) scale(1.1)">
       <path d="M0 18 L14 0 L28 18 L21 32 L7 32 Z" fill="#ff5b59" />
       <rect x="11" y="8" width="6" height="20" fill="#f0f6ff" />
       <circle cx="7" cy="14" r="4" fill="#49c9ff" />
       <circle cx="21" cy="14" r="4" fill="#49c9ff" />
     </g>
-    <g transform="translate(405 68) scale(1.1)">
+    <g id="hero-ship-b" transform="translate(405 68) scale(1.1)">
       <path d="M0 18 L14 0 L28 18 L21 32 L7 32 Z" fill="#7c57ff" />
       <rect x="11" y="8" width="6" height="20" fill="#f0f6ff" />
       <circle cx="7" cy="14" r="4" fill="#7affcb" />
       <circle cx="21" cy="14" r="4" fill="#7affcb" />
     </g>
-    <rect x="183" y="84" width="4" height="40" rx="2" fill="url(#beam-blue)" />
-    <rect x="258" y="76" width="4" height="52" rx="2" fill="url(#beam-red)" />
-    <rect x="333" y="84" width="4" height="40" rx="2" fill="url(#beam-green)" />
-    <g transform="translate(144 94)">
+    <rect id="hero-beam-blue"  x="183" y="84" width="4" height="40" rx="2" fill="url(#beam-blue)" />
+    <rect id="hero-beam-red"   x="258" y="76" width="4" height="52" rx="2" fill="url(#beam-red)" />
+    <rect id="hero-beam-green" x="333" y="84" width="4" height="40" rx="2" fill="url(#beam-green)" />
+    <g id="hero-ship-c" transform="translate(144 94)">
       <path d="M40 0 L12 40 L26 57 L40 48 L54 57 L68 40 Z" fill="#1d3d65" />
       <path d="M40 4 L18 40 L30 52 L40 44 L50 52 L62 40 Z" fill="#62b8ff" />
       <rect x="33" y="8" width="14" height="34" rx="6" fill="#62b8ff" />
@@ -98,7 +137,7 @@ export const heroBannerSvg = () => `
       <circle cx="18" cy="56" r="4" fill="#ffae4d" />
       <circle cx="62" cy="56" r="4" fill="#ffae4d" />
     </g>
-    <g transform="translate(219 82) scale(1.08)">
+    <g id="hero-ship-d" transform="translate(219 82) scale(1.08)">
       <path d="M40 0 L12 40 L26 57 L40 48 L54 57 L68 40 Z" fill="#612039" />
       <path d="M40 4 L18 40 L30 52 L40 44 L50 52 L62 40 Z" fill="#ff6885" />
       <rect x="33" y="8" width="14" height="34" rx="6" fill="#ff6885" />
@@ -106,7 +145,7 @@ export const heroBannerSvg = () => `
       <circle cx="18" cy="56" r="4" fill="#ffad52" />
       <circle cx="62" cy="56" r="4" fill="#ffad52" />
     </g>
-    <g transform="translate(294 94)">
+    <g id="hero-ship-e" transform="translate(294 94)">
       <path d="M40 0 L12 40 L26 57 L40 48 L54 57 L68 40 Z" fill="#175241" />
       <path d="M40 4 L18 40 L30 52 L40 44 L50 52 L62 40 Z" fill="#56d6a0" />
       <rect x="33" y="8" width="14" height="34" rx="6" fill="#56d6a0" />
