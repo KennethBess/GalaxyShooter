@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.6",
+    "@fission-ai/openspec": "latest",
     "typescript": "^5.7.3"
   }
 }
