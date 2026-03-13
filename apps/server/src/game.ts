@@ -138,7 +138,8 @@ const updateEnemies = (match: MatchRuntime, deltaMs: number) => {
       enemy.x += (enemy.vx * deltaMs) / 1000;
       enemy.y += (enemy.vy * deltaMs) / 1000;
       if (enemy.kind === "kamikaze") {
-        const target = [...match.players.values()].find((player) => player.alive);
+        let target: RuntimePlayer | undefined;
+        for (const p of match.players.values()) { if (p.alive) { target = p; break; } }
         if (target) {
           const dx = target.x - enemy.x;
           const dy = target.y - enemy.y;
@@ -248,18 +249,15 @@ export const updateMatch = (match: MatchRuntime, inputs: Map<string, InputState>
     }
   }
 
-  const events = [...match.pendingEvents];
+  const events = match.pendingEvents.length > 0 ? match.pendingEvents.slice() : [];
   match.pendingEvents = [];
-  const snapshot: SnapshotState = {
-    tick: match.tick,
-    roomCode: match.roomCode,
-    mode: match.mode,
-    stageIndex: match.stageIndex + (match.mode === "campaign" ? 1 : 0),
-    stageLabel: match.stageLabel,
-    elapsedMs: match.elapsedMs,
-    teamLives: match.teamLives,
-    score: [...match.players.values()].reduce((sum, current) => sum + current.score, 0),
-    players: [...match.players.values()].map((player) => ({
+
+  // Compute score and build player snapshots in a single pass over the Map iterator.
+  let totalScore = 0;
+  const playerSnapshots: SnapshotState["players"] = [];
+  for (const player of match.players.values()) {
+    totalScore += player.score;
+    playerSnapshots.push({
       playerId: player.playerId,
       name: player.name,
       shipId: player.shipId,
@@ -269,7 +267,19 @@ export const updateMatch = (match: MatchRuntime, inputs: Map<string, InputState>
       bombs: player.bombs,
       weaponLevel: player.weaponLevel,
       score: player.score
-    })),
+    });
+  }
+
+  const snapshot: SnapshotState = {
+    tick: match.tick,
+    roomCode: match.roomCode,
+    mode: match.mode,
+    stageIndex: match.stageIndex + (match.mode === "campaign" ? 1 : 0),
+    stageLabel: match.stageLabel,
+    elapsedMs: match.elapsedMs,
+    teamLives: match.teamLives,
+    score: totalScore,
+    players: playerSnapshots,
     enemies: match.enemies.map((enemy) => ({
       id: enemy.id,
       kind: enemy.kind,

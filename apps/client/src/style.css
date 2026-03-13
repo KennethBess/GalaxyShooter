@@ -98,6 +98,11 @@ body {
   color: var(--text);
 }
 
+/* Issue #30: suppress starfield animation during active gameplay */
+.game-active body {
+  animation-play-state: paused;
+}
+
 button,
 input,
 select {
@@ -187,7 +192,7 @@ h3 {
 
 .game-header h1 {
   margin: 0;
-  line-height: 0.9;
+  line-height: 1.1;
   font-size: clamp(3.4rem, 8vw, 5.8rem);
   letter-spacing: -0.05em;
 }
@@ -622,9 +627,8 @@ h3 {
   gap: 1rem;
   padding: 1.15rem 1.35rem;
   border-radius: 26px;
-  background: rgba(11, 20, 34, 0.86);
+  background: rgba(11, 20, 34, 0.92);
   border: 1px solid rgba(123, 182, 239, 0.16);
-  backdrop-filter: blur(12px);
 }
 
 .game-header h1 {
@@ -669,11 +673,20 @@ h3 {
 .game-canvas,
 .game-canvas canvas {
   width: 100%;
+  min-width: 320px;
   max-width: 1280px;
   aspect-ratio: 16 / 9;
   display: block;
   margin: 0 auto;
   border-radius: 22px;
+}
+
+/* Issue #36: prevent lobby grid overflow above 920px */
+@media (min-width: 920px) {
+  .lobby-grid {
+    grid-template-columns: minmax(300px, 0.9fr) minmax(480px, 1fr);
+    max-width: 1180px;
+  }
 }
 
 .game-sidebar {
@@ -913,4 +926,36 @@ h3 {
 }
 .results-row {
   animation: resultRowIn 250ms ease-out both;
+}
+
+/* Issue #32: respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  body {
+    animation: none;
+  }
+  .screen-enter {
+    animation: none;
+  }
+  .results-row {
+    animation: none;
+  }
+  #hero-core-group {
+    animation: none;
+  }
+  #hero-beam-blue,
+  #hero-beam-red,
+  #hero-beam-green {
+    animation: none;
+  }
+  #hero-ship-a,
+  #hero-ship-b,
+  #hero-ship-c,
+  #hero-ship-d,
+  #hero-ship-e {
+    animation: none;
+  }
+  button,
+  .ship-option {
+    transition-duration: 0.01ms;
+  }
 }

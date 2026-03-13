@@ -236,7 +236,7 @@ export const resolveCollisions = (match: MatchRuntime) => {
   }
   match.bullets = remainingBullets;
 
-  for (const enemy of [...match.enemies]) {
+  for (const enemy of match.enemies.slice()) {
     for (const player of match.players.values()) {
       if (!player.alive || player.invulnerableMs > 0) {
         continue;
@@ -253,7 +253,13 @@ export const resolveCollisions = (match: MatchRuntime) => {
 
   const remainingPickups: RuntimePickup[] = [];
   for (const pickup of match.pickups) {
-    const collector = [...match.players.values()].find((player) => player.alive && distanceSq(player.x, player.y, pickup.x, pickup.y) <= PICKUP_COLLECT_RADIUS ** 2);
+    let collector: RuntimePlayer | undefined;
+    for (const p of match.players.values()) {
+      if (p.alive && distanceSq(p.x, p.y, pickup.x, pickup.y) <= PICKUP_COLLECT_RADIUS ** 2) {
+        collector = p;
+        break;
+      }
+    }
     if (!collector) {
       remainingPickups.push(pickup);
       continue;

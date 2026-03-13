@@ -13,7 +13,12 @@
       "Bash(azd deploy:*)",
       "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
       "Bash(git worktree:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(gh label:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh repo:*)",
+      "Bash(node --import tsx --test apps/server/test/*.test.ts)",
+      "Bash(npm test:*)"
     ]
   }
 }

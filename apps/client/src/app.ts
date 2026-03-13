@@ -30,6 +30,7 @@ export class App {
   private selectedShip: ShipId = this.session?.shipId ?? DEFAULT_SHIP_ID;
   private homeMode: "create" | "join" = "create";
   private eventAbort: AbortController | null = null;
+  private renderedFeedCount = 0;
   private state: AppState = {
     screen: "home",
     room: null,
@@ -55,6 +56,7 @@ export class App {
     const scores = loadScores();
 
     this.root.className = `app-root screen-${this.state.screen}`;
+    document.documentElement.classList.toggle("game-active", this.state.screen === "game");
     this.root.innerHTML = this.state.screen === "game"
       ? this.getGameMarkup(room)
       : this.getFrontMarkup(room, players, myPlayer, playerName, scores);
@@ -77,6 +79,23 @@ export class App {
     const el = this.root.querySelector<HTMLElement>("#results-score");
     if (!el) return;
     const target = Number(el.dataset.target ?? 0);
+    const playerCount = this.state.result?.players?.length ?? 0;
+    const lastRowDelay = 240 + playerCount * 80;
+    // CSS animation for rows is ~400ms; add that to the last row's delay
+    const totalStaggerMs = lastRowDelay + 400;
+
+    const enableResultsButtons = () => {
+      this.root.querySelectorAll<HTMLElement>(".lobby-actions.results-row button").forEach((btn) => {
+        btn.tabIndex = 0;
+      });
+    };
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.textContent = String(target);
+      enableResultsButtons();
+      return;
+    }
+    setTimeout(enableResultsButtons, totalStaggerMs);
     const duration = 1200;
     const start = performance.now();
     const tick = (now: number) => {
@@ -189,7 +208,7 @@ export class App {
                   ${players.map((player) => `<li>
                     <span class="lobby-roster-name">
                       <span>${this.escape(player.name)}</span>
-                      <span class="lobby-chip">${shipLabel(player.shipId)}</span>
+                      <span class="lobby-chip">${this.escape(shipLabel(player.shipId))}</span>
                       ${player.isHost ? '<span class="lobby-chip lobby-chip-host">Host</span>' : ""}
                     </span>
                     <span class="lobby-roster-status ${player.connected ? "is-online" : "is-reconnecting"}">${player.connected ? "Online" : "Reconnecting"}${player.ready ? " / Ready" : ""}</span>
@@ -217,15 +236,15 @@ export class App {
                 <p class="lede">${this.escape(this.state.notice)}</p>
               </header>
               <section class="front-card ${outcome ? "results-win" : "results-fail"}">
-                <p class="results-row" style="animation-delay:0ms">Mode: ${this.state.result?.mode ?? "-"}</p>
+                <p class="results-row" style="animation-delay:0ms">Mode: ${this.escape(this.state.result?.mode ?? "-")}</p>
                 <p class="results-row" style="animation-delay:80ms">Stage reached: ${this.state.result?.stageReached ?? 0}</p>
                 <p class="results-row" style="animation-delay:160ms">Duration: ${Math.round((this.state.result?.durationMs ?? 0) / 1000)}s</p>
                 <ul class="roster compact-roster">
-                  ${(this.state.result?.players ?? []).map((player, i) => `<li class="results-row" style="animation-delay:${240 + i * 80}ms"><span>${this.escape(player.name)} (${shipLabel(player.shipId)})</span><span>${player.score}</span></li>`).join("")}
+                  ${(this.state.result?.players ?? []).map((player, i) => `<li class="results-row" style="animation-delay:${240 + i * 80}ms"><span>${this.escape(player.name)} (${this.escape(shipLabel(player.shipId))})</span><span>${player.score}</span></li>`).join("")}
                 </ul>
                 <div class="lobby-actions results-row" style="animation-delay:${240 + (this.state.result?.players?.length ?? 0) * 80}ms">
-                  ${room?.status === "waiting" ? '<button id="back-lobby" class="primary-button">Back to lobby</button>' : '<button id="back-home" class="primary-button">Front page</button>'}
-                  <button id="show-scores" class="secondary-button">High Scores</button>
+                  ${room?.status === "waiting" ? '<button id="back-lobby" class="primary-button" tabindex="-1">Back to lobby</button>' : '<button id="back-home" class="primary-button" tabindex="-1">Front page</button>'}
+                  <button id="show-scores" class="secondary-button" tabindex="-1">High Scores</button>
                 </div>
               </section>
             </div>
@@ -242,7 +261,7 @@ export class App {
               </header>
               <section class="front-card">
                 <ul class="roster compact-roster">
-                  ${scores.map((entry) => `<li><span>${this.escape(entry.playerName)} / ${entry.mode}</span><span>${entry.score}</span></li>`).join("") || "<li><span>No scores yet</span><span>-</span></li>"}
+                  ${scores.map((entry) => `<li><span>${this.escape(entry.playerName)} / ${this.escape(entry.mode)}</span><span>${entry.score}</span></li>`).join("") || "<li><span>No scores yet</span><span>-</span></li>"}
                 </ul>
                 <div class="lobby-actions">
                   <button id="back-home" class="primary-button">Front page</button>
@@ -291,7 +310,7 @@ export class App {
         </header>
         <section class="game-layout">
           <div class="game-stage-shell">
-            <div class="game-root" role="img" aria-label="Game canvas — use keyboard to control your ship"></div>
+            <div class="game-root" role="application" aria-label="Game canvas"></div>
           </div>
           <aside class="game-sidebar">
             <section class="game-card">
@@ -377,7 +396,7 @@ export class App {
     }
     if (roster) {
       const nextRosterMarkup = (this.state.snapshot?.players ?? [])
-        .map((player) => `<li><span>${this.escape(player.name)} (${shipLabel(player.shipId)})</span><span>${player.alive ? `score ${player.score}` : "down"}</span></li>`)
+        .map((player) => `<li><span>${this.escape(player.name)} (${this.escape(shipLabel(player.shipId))})</span><span>${player.alive ? `score ${player.score}` : "down"}</span></li>`)
         .join("");
       if (roster.innerHTML !== nextRosterMarkup) {
         roster.innerHTML = nextRosterMarkup;
@@ -389,11 +408,32 @@ export class App {
         boss_phase: "feed-boss", boss_defeated: "feed-boss",
         stage_clear: "feed-stage", pickup: "feed-pickup", info: "feed-info"
       };
-      const nextFeedMarkup = this.state.eventLog.length > 0
-        ? this.state.eventLog.map((entry) => `<li class="${feedKindClass[entry.kind] ?? "feed-info"}">${this.escape(entry.text)}</li>`).join("")
-        : "<li>Hold formation.</li>";
-      if (feed.innerHTML !== nextFeedMarkup) {
-        feed.innerHTML = nextFeedMarkup;
+      // Reset rendered count when the feed element is freshly created (after a render())
+      if (feed.children.length === 0) {
+        this.renderedFeedCount = 0;
+      }
+      if (this.state.eventLog.length === 0 && feed.children.length === 0) {
+        const placeholder = document.createElement("li");
+        placeholder.textContent = "Hold formation.";
+        feed.appendChild(placeholder);
+      } else if (this.state.eventLog.length > this.renderedFeedCount) {
+        // Remove placeholder if present
+        if (feed.children.length === 1 && feed.firstElementChild?.textContent === "Hold formation.") {
+          feed.firstElementChild.remove();
+        }
+        // eventLog is prepended (newest first); append only entries not yet rendered
+        const newEntries = this.state.eventLog.slice(0, this.state.eventLog.length - this.renderedFeedCount);
+        for (const entry of newEntries.reverse()) {
+          const li = document.createElement("li");
+          li.className = feedKindClass[entry.kind] ?? "feed-info";
+          li.textContent = entry.text;
+          feed.prepend(li);
+        }
+        // Remove overflow beyond max kept entries
+        while (feed.children.length > this.state.eventLog.length) {
+          feed.lastElementChild?.remove();
+        }
+        this.renderedFeedCount = this.state.eventLog.length;
       }
     }
   }
@@ -422,7 +462,7 @@ export class App {
       const nextRosterMarkup = players.map((player) => `<li>
                     <span class="lobby-roster-name">
                       <span>${this.escape(player.name)}</span>
-                      <span class="lobby-chip">${shipLabel(player.shipId)}</span>
+                      <span class="lobby-chip">${this.escape(shipLabel(player.shipId))}</span>
                       ${player.isHost ? '<span class="lobby-chip lobby-chip-host">Host</span>' : ""}
                     </span>
                     <span class="lobby-roster-status ${player.connected ? "is-online" : "is-reconnecting"}">${player.connected ? "Online" : "Reconnecting"}${player.ready ? " / Ready" : ""}</span>

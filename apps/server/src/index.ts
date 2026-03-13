@@ -151,8 +151,11 @@ const apiLimiter = rateLimit({
 app.use("/rooms", apiLimiter);
 app.use("/realtime", apiLimiter);
 
+const SAFE_REQUEST_ID_RE = /^[a-zA-Z0-9-]{1,64}$/;
+
 app.use((req, res, next) => {
-  res.locals.requestId = req.header("x-request-id") ?? randomUUID();
+  const incoming = req.header("x-request-id");
+  res.locals.requestId = (incoming && SAFE_REQUEST_ID_RE.test(incoming)) ? incoming : randomUUID();
   res.setHeader("x-request-id", res.locals.requestId);
   const startedAt = Date.now();
 

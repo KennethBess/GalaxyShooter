@@ -10,12 +10,22 @@ import type { RoomRepository } from "./roomRepository.js";
 import { defaultInputState, normalizeRoomCode, type RoomRuntime } from "./runtime.js";
 import type { RoomRuntimeRegistry } from "./runtimeRegistry.js";
 
+/** Cache entry for ownership lookups to avoid hitting Redis on every input message. */
+interface OwnerCacheEntry {
+  owner: string;
+  cachedAt: number;
+}
+
+/** How long (ms) an ownership lookup result is considered fresh before re-checking Redis. */
+const OWNER_CACHE_TTL_MS = 5_000;
+
 export class RoomService {
   private readonly ownedRooms = new Set<string>();
   private lastLeaseRenewalMs = 0;
   private readonly stateCache = new Map<string, RoomState>();
   private readonly saveInFlight = new Set<string>();
   private readonly pendingSave = new Map<string, RoomState>();
+  private readonly ownerCache = new Map<string, OwnerCacheEntry>();
 
   constructor(
     private readonly repository: RoomRepository,
@@ -390,6 +400,7 @@ export class RoomService {
       this.ownedRooms.delete(normalized);
       this.stateCache.delete(normalized);
       this.pendingSave.delete(normalized);
+      this.ownerCache.delete(normalized);
       await this.directory.remove(state.roomCode);
       await this.repository.delete(state.roomCode);
       return;
@@ -409,8 +420,19 @@ export class RoomService {
 
   private async ensureOwner(roomCode: string) {
     const normalized = normalizeRoomCode(roomCode);
+
+    // Return cached owner if still fresh, avoiding a Redis round-trip on every input message.
+    const cached = this.ownerCache.get(normalized);
+    if (cached && Date.now() - cached.cachedAt < OWNER_CACHE_TTL_MS) {
+      if (cached.owner === this.instanceId) {
+        this.ownedRooms.add(normalized);
+      }
+      return cached.owner;
+    }
+
     const currentOwner = await this.directory.getOwner(normalized);
     if (currentOwner) {
+      this.ownerCache.set(normalized, { owner: currentOwner, cachedAt: Date.now() });
       if (currentOwner === this.instanceId) {
         this.ownedRooms.add(normalized);
       }
@@ -421,6 +443,7 @@ export class RoomService {
     const claimed = await this.directory.tryClaimOwner(normalized, this.instanceId);
     if (claimed) {
       this.ownedRooms.add(normalized);
+      this.ownerCache.set(normalized, { owner: this.instanceId, cachedAt: Date.now() });
       return this.instanceId;
     }
 
@@ -430,9 +453,11 @@ export class RoomService {
       const retryClaimed = await this.directory.tryClaimOwner(normalized, this.instanceId);
       if (retryClaimed) {
         this.ownedRooms.add(normalized);
+        this.ownerCache.set(normalized, { owner: this.instanceId, cachedAt: Date.now() });
       }
       return this.instanceId;
     }
+    this.ownerCache.set(normalized, { owner: winner, cachedAt: Date.now() });
     return winner;
   }
 
