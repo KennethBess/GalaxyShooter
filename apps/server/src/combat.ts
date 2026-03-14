@@ -2,7 +2,7 @@ import type { EnemyKind } from "@shared/index";
 import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "@shared/index";
 import {
   BOSS_FIRE_COOLDOWN_MS, BOSS_HP_BASE, BOSS_INITIAL_VX, BOSS_INITIAL_VY, BOSS_RADIUS, BOSS_SPAWN_Y,
-  clamp, distanceSq,
+  clamp, distanceSq, segmentPointDistanceSq,
   ENEMY_BULLET_RADIUS_LARGE, ENEMY_BULLET_RADIUS_SMALL, ENEMY_BULLET_SPEED_BASE, ENEMY_BULLET_SPEED_HEAVY,
   ENEMY_DRIFT_SPEED, ENEMY_SPAWN_Y,
   FIGHTER_FIRE_COOLDOWN_MS, FIGHTER_STATS, 
@@ -94,6 +94,8 @@ export const spawnPlayerVolley = (match: MatchRuntime, player: RuntimePlayer) =>
       ownerId: player.playerId,
       x: player.x + offset,
       y: player.y + PLAYER_BULLET_OFFSET_Y,
+      prevX: player.x + offset,
+      prevY: player.y + PLAYER_BULLET_OFFSET_Y,
       vx: offset * 2.5,
       vy: PLAYER_BULLET_SPEED,
       radius: PLAYER_BULLET_RADIUS,
@@ -114,6 +116,8 @@ export const fireEnemy = (match: MatchRuntime, enemy: RuntimeEnemy) => {
         owner: "enemy",
         x: enemy.x + offset,
         y: enemy.y + 18,
+        prevX: enemy.x + offset,
+        prevY: enemy.y + 18,
         vx: 0,
         vy: ENEMY_BULLET_SPEED_BASE + Math.abs(offset) * 0.25,
         radius: ENEMY_BULLET_RADIUS_LARGE - 1,
@@ -129,6 +133,8 @@ export const fireEnemy = (match: MatchRuntime, enemy: RuntimeEnemy) => {
     owner: "enemy",
     x: enemy.x,
     y: enemy.y + enemy.radius / 2,
+    prevX: enemy.x,
+    prevY: enemy.y + enemy.radius / 2,
     vx: 0,
     vy: enemy.kind === "heavy" ? ENEMY_BULLET_SPEED_HEAVY : ENEMY_BULLET_SPEED_BASE,
     radius: enemy.kind === "heavy" ? ENEMY_BULLET_RADIUS_LARGE : ENEMY_BULLET_RADIUS_SMALL,
@@ -207,7 +213,7 @@ export const resolveCollisions = (match: MatchRuntime) => {
     if (bullet.owner === "player") {
       let hit = false;
       for (const enemy of match.enemies) {
-        if (distanceSq(bullet.x, bullet.y, enemy.x, enemy.y) <= (bullet.radius + enemy.radius) ** 2) {
+        if (segmentPointDistanceSq(bullet.prevX, bullet.prevY, bullet.x, bullet.y, enemy.x, enemy.y) <= (bullet.radius + enemy.radius) ** 2) {
           enemy.hp -= bullet.damage;
           hit = true;
           if (enemy.hp <= 0) {

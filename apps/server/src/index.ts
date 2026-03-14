@@ -14,7 +14,7 @@ import { WebSocketServer } from "ws";
 import { gameMetrics, logError, logInfo, requestContext, trackRequest } from "./logger.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 import { normalizeRoomCode } from "./runtime.js";
-import { parseCreateRoomRequest, parseJoinRoomRequest, parseRealtimeNegotiationRequest } from "./validation.js";
+import { parseControllerNegotiateRequest, parseCreateRoomRequest, parseJoinRoomRequest, parseRealtimeNegotiationRequest } from "./validation.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -31,6 +31,7 @@ if (realtime.mode === "webpubsub") {
     handleConnect: (req, res) => {
       try {
         const roomCode = normalizeRoomCode(req.queries?.roomCode?.[0] ?? "");
+        const role = req.queries?.role?.[0] ?? "player";
         const playerId = req.context.userId;
         if (!roomCode || !playerId) {
           res.fail(400, "Missing room code or player ID");
@@ -38,8 +39,12 @@ if (realtime.mode === "webpubsub") {
         }
 
         res.setState("roomCode", roomCode);
+        res.setState("role", role);
+        if (role === "controller") {
+          res.setState("targetPlayerId", req.queries?.targetPlayerId?.[0] ?? "");
+        }
         const requestedProtocol = req.subprotocols?.find((protocol) => protocol === "json.webpubsub.azure.v1");
-        logInfo("Web PubSub connect accepted", { roomCode, playerId });
+        logInfo("Web PubSub connect accepted", { roomCode, playerId, role });
         res.success({ userId: playerId, subprotocol: requestedProtocol });
       } catch (error) {
         logError("Web PubSub connect rejected", error, {
@@ -52,7 +57,15 @@ if (realtime.mode === "webpubsub") {
     onConnected: (req) => {
       const roomCode = String(req.context.states.roomCode ?? "");
       const playerId = req.context.userId;
+      const role = String(req.context.states.role ?? "player");
       if (!roomCode || !playerId) {
+        return;
+      }
+
+      if (role === "controller") {
+        // Controller pairing happens when the client sends a controller_connect message,
+        // not here, to avoid race conditions with message ordering.
+        logInfo("Web PubSub controller connected (awaiting pairing message)", { roomCode, playerId });
         return;
       }
 
@@ -64,7 +77,14 @@ if (realtime.mode === "webpubsub") {
     onDisconnected: (req) => {
       const roomCode = String(req.context.states.roomCode ?? "");
       const playerId = req.context.userId;
+      const role = String(req.context.states.role ?? "player");
       if (!roomCode || !playerId) {
+        return;
+      }
+
+      if (role === "controller") {
+        logInfo("Web PubSub controller disconnected", { controllerId: playerId });
+        // No cleanup needed — Web PubSub controllers use connection state, not in-memory bindings.
         return;
       }
 
@@ -85,6 +105,7 @@ if (realtime.mode === "webpubsub") {
 
       const roomCode = String(req.context.states.roomCode ?? "");
       const playerId = req.context.userId;
+      const role = String(req.context.states.role ?? "player");
       if (!roomCode || !playerId) {
         res.fail(400, "Missing room context");
         return;
@@ -94,10 +115,56 @@ if (realtime.mode === "webpubsub") {
       logInfo("Web PubSub client message received", {
         roomCode,
         playerId,
+        role,
         eventName: req.context.eventName,
         messageType: clientMessage.type
       });
+
+      // Controller messages: use connection state (targetPlayerId, roomCode) directly
+      // instead of in-memory bindings, since Web PubSub can route events to any server instance.
+      if (role === "controller") {
+        const targetPlayerId = String(req.context.states.targetPlayerId ?? "");
+
+        if (clientMessage.type === "controller_connect") {
+          // Validate player exists and send pairing confirmation
+          void (async () => {
+            try {
+              const state = await roomManager.validatePlayer(roomCode, targetPlayerId);
+              const player = state.players.find((p) => p.playerId === targetPlayerId);
+              if (!player) throw new Error("Player not found in room");
+              logInfo("Web PubSub controller paired", { controllerId: playerId, targetPlayerId });
+              res.success();
+              await realtime.serviceClient.sendToUser(playerId, {
+                type: "controller_paired",
+                payload: { playerId: targetPlayerId, playerName: player.name }
+              }, { contentType: "application/json" });
+            } catch (error) {
+              logError("Web PubSub controller pairing failed", error, { controllerId: playerId, targetPlayerId });
+              res.fail(400, error instanceof Error ? error.message : "Pairing failed");
+            }
+          })();
+          return;
+        }
+
+        // Route input/bomb through the normal distributed command path (handles multi-instance)
+        res.success();
+        if (!targetPlayerId) {
+          logError("Web PubSub controller missing targetPlayerId", new Error("No targetPlayerId in connection state"), { controllerId: playerId });
+          return;
+        }
+        void roomManager.handleMessage(roomCode, targetPlayerId, clientMessage)
+          .catch((error) => {
+            logError("Web PubSub controller message failed", error, {
+              controllerId: playerId,
+              targetPlayerId,
+              messageType: clientMessage.type
+            });
+          });
+        return;
+      }
+
       res.success();
+
       void roomManager.handleMessage(roomCode, playerId, clientMessage)
         .then(() => {
           logInfo("Web PubSub client message processed", {
@@ -238,6 +305,39 @@ app.post("/realtime/negotiate", async (req, res) => {
   }
 });
 
+app.post("/realtime/negotiate/controller", async (req, res) => {
+  try {
+    const body = parseControllerNegotiateRequest(req.body);
+    const roomCode = normalizeRoomCode(body.roomCode);
+    await roomManager.validatePlayer(roomCode, body.playerId);
+
+    if (realtime.mode === "webpubsub") {
+      const token = await realtime.serviceClient.getClientAccessToken({ userId: `ctrl_${body.playerId}` });
+      const url = new URL(token.url);
+      url.searchParams.set("roomCode", roomCode);
+      url.searchParams.set("role", "controller");
+      url.searchParams.set("targetPlayerId", body.playerId);
+      res.status(200).json({
+        mode: "webpubsub",
+        hub: realtime.hub,
+        url: url.toString(),
+        protocol: "json.webpubsub.azure.v1"
+      });
+      return;
+    }
+
+    const directUrl = new URL("/controller-ws", `${req.protocol === "https" ? "wss" : "ws"}://${req.get("host")}`);
+    directUrl.searchParams.set("code", roomCode);
+    directUrl.searchParams.set("playerId", body.playerId);
+    res.status(200).json({ mode: "direct", url: directUrl.toString() });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to negotiate controller connection";
+    const status = message === "Room not found" ? 404 : message === "Player not found in room" ? 400 : 400;
+    logError("Controller negotiation failed", error);
+    res.status(status).json({ message });
+  }
+});
+
 const server = createServer(app);
 const wss = realtime.mode === "direct" ? new WebSocketServer({ server, path: "/rooms" }) : null;
 
@@ -279,6 +379,45 @@ wss?.on("connection", async (socket, request) => {
   });
 });
 
+const controllerWss = realtime.mode === "direct" ? new WebSocketServer({ server, path: "/controller-ws" }) : null;
+
+controllerWss?.on("connection", async (socket, request) => {
+  const url = new URL(request.url ?? "", "http://localhost");
+  const roomCode = url.searchParams.get("code")?.toUpperCase();
+  const targetPlayerId = url.searchParams.get("playerId");
+
+  if (!roomCode || !targetPlayerId) {
+    socket.close(1008, "Missing room code or player ID");
+    return;
+  }
+
+  const controllerId = randomUUID();
+
+  try {
+    const playerName = await roomManager.connectController(roomCode, targetPlayerId, controllerId);
+    logInfo("Controller websocket connected", { roomCode, targetPlayerId, controllerId });
+    socket.send(JSON.stringify({ type: "controller_paired", payload: { playerId: targetPlayerId, playerName } }));
+  } catch (error) {
+    logError("Controller websocket connection failed", error, { roomCode, targetPlayerId });
+    socket.close(1008, error instanceof Error ? error.message : "Connection rejected");
+    return;
+  }
+
+  socket.on("message", async (raw) => {
+    try {
+      const message = JSON.parse(raw.toString()) as ClientMessage;
+      await roomManager.handleControllerMessage(controllerId, message);
+    } catch (error) {
+      logError("Controller websocket message failed", error, { controllerId });
+    }
+  });
+
+  socket.on("close", () => {
+    logInfo("Controller websocket disconnected", { controllerId });
+    roomManager.disconnectController(controllerId);
+  });
+});
+
 const TICK_MS = 1000 / TICK_RATE;
 let tickTimer: ReturnType<typeof setTimeout>;
 const scheduleTick = (delay: number = TICK_MS) => {
@@ -304,6 +443,7 @@ const shutdown = async () => {
   shuttingDown = true;
   clearTimeout(tickTimer);
   wss?.close();
+  controllerWss?.close();
   server.close();
   await dispose();
 

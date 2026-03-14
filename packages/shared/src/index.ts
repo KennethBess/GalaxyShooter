@@ -278,6 +278,14 @@ export interface PingMessage {
   type: "ping";
 }
 
+export interface ControllerConnectMessage {
+  type: "controller_connect";
+  payload: {
+    roomCode: string;
+    playerId: string;
+  };
+}
+
 export type ClientMessage =
   | PlayerInputMessage
   | ReadyMessage
@@ -286,7 +294,8 @@ export type ClientMessage =
   | UseBombMessage
   | LeaveRoomMessage
   | ReconnectMessage
-  | PingMessage;
+  | PingMessage
+  | ControllerConnectMessage;
 
 export interface RoomStateMessage {
   type: "room_state";
@@ -333,6 +342,14 @@ export interface MatchResultMessage {
   payload: ResultSummary;
 }
 
+export interface ControllerPairedMessage {
+  type: "controller_paired";
+  payload: {
+    playerId: string;
+    playerName: string;
+  };
+}
+
 export interface ErrorMessage {
   type: "error";
   payload: ErrorPayload;
@@ -346,5 +363,6 @@ export type ServerMessage =
   | SnapshotMessage
   | GameEventMessage
   | MatchResultMessage
+  | ControllerPairedMessage
   | ErrorMessage;
 

@@ -35,6 +35,18 @@ export class RoomManager {
     return this.service.handleMessage(roomCode, playerId, message);
   }
 
+  connectController(roomCode: string, targetPlayerId: string, controllerId: string): Promise<string> {
+    return this.service.connectController(roomCode, targetPlayerId, controllerId);
+  }
+
+  disconnectController(controllerId: string): void {
+    this.service.disconnectController(controllerId);
+  }
+
+  handleControllerMessage(controllerId: string, message: ClientMessage): Promise<void> {
+    return this.service.handleControllerMessage(controllerId, message);
+  }
+
   tick(deltaMs: number = 1000 / TICK_RATE): Promise<void> {
     return this.service.tick(deltaMs);
   }

@@ -26,6 +26,8 @@ export class RoomService {
   private readonly saveInFlight = new Set<string>();
   private readonly pendingSave = new Map<string, RoomState>();
   private readonly ownerCache = new Map<string, OwnerCacheEntry>();
+  /** Maps controller connection ID to { roomCode, playerId } for input routing. */
+  private readonly controllerBindings = new Map<string, { roomCode: string; playerId: string }>();
 
   constructor(
     private readonly repository: RoomRepository,
@@ -205,6 +207,46 @@ export class RoomService {
     runtime.disconnectTimers.set(playerId, timeout);
   }
 
+  async connectController(roomCode: string, targetPlayerId: string, controllerId: string): Promise<string> {
+    const state = await this.validatePlayer(roomCode, targetPlayerId);
+    const player = state.players.find((p) => p.playerId === targetPlayerId);
+    if (!player) {
+      throw new Error("Player not found in room");
+    }
+    this.controllerBindings.set(controllerId, { roomCode: normalizeRoomCode(roomCode), playerId: targetPlayerId });
+    logInfo("Controller paired", { roomCode, targetPlayerId, controllerId });
+    return player.name;
+  }
+
+  disconnectController(controllerId: string): void {
+    const binding = this.controllerBindings.get(controllerId);
+    if (binding) {
+      logInfo("Controller disconnected", { controllerId, playerId: binding.playerId, roomCode: binding.roomCode });
+      this.controllerBindings.delete(controllerId);
+    }
+  }
+
+  async handleControllerMessage(controllerId: string, message: ClientMessage): Promise<void> {
+    const binding = this.controllerBindings.get(controllerId);
+    if (!binding) {
+      throw new Error("Controller not paired");
+    }
+    if (message.type === "input") {
+      const runtime = this.runtimes.get(binding.roomCode);
+      if (runtime) {
+        runtime.inputs.set(binding.playerId, message.payload);
+      }
+      return;
+    }
+    if (message.type === "use_bomb") {
+      const runtime = this.runtimes.get(binding.roomCode);
+      if (runtime) {
+        this.matches.queueBomb(runtime, binding.playerId);
+      }
+      return;
+    }
+  }
+
   async handleMessage(roomCode: string, playerId: string, message: ClientMessage): Promise<void> {
     const state = await this.getState(roomCode);
     const owner = await this.ensureOwner(state.roomCode);
@@ -369,6 +411,10 @@ export class RoomService {
         return;
       }
       case "ping": {
+        return;
+      }
+      case "controller_connect": {
+        // Controller pairing is handled at the transport layer (index.ts), not here.
         return;
       }
     }

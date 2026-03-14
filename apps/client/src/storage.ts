@@ -14,6 +14,8 @@ export interface StoredScore {
 export interface StoredSettings {
   screenshake: boolean;
   reducedFlash: boolean;
+  musicVolume: number;
+  musicMuted: boolean;
 }
 
 export interface StoredSession {
@@ -47,7 +49,7 @@ export const saveScore = (playerName: string, result: ResultSummary) => {
   localStorage.setItem(HIGHSCORES_KEY, JSON.stringify(next));
 };
 
-export const loadSettings = (): StoredSettings => parse<StoredSettings>(SETTINGS_KEY, { screenshake: true, reducedFlash: false });
+export const loadSettings = (): StoredSettings => parse<StoredSettings>(SETTINGS_KEY, { screenshake: true, reducedFlash: false, musicVolume: 0.5, musicMuted: false });
 export const saveSettings = (settings: StoredSettings) => localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 export const loadSession = () => parse<StoredSession | null>(SESSION_KEY, null);
 export const saveSession = (session: StoredSession) => localStorage.setItem(SESSION_KEY, JSON.stringify(session));

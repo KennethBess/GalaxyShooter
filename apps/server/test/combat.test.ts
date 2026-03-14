@@ -23,6 +23,7 @@ import {
   HEAVY_STATS,
   KAMIKAZE_STATS,
   PLAYER_BULLET_DAMAGE,
+  PLAYER_BULLET_RADIUS,
   PLAYER_HITBOX_RADIUS,
   RAPID_FIRE_DURATION_MS,
   SCORE_BOSS,
@@ -268,6 +269,8 @@ describe("resolveCollisions", () => {
       ownerId: "p1",
       x: 100,
       y: 100,
+      prevX: 100,
+      prevY: 100,
       vx: 0,
       vy: -540,
       radius: 5,
@@ -288,6 +291,8 @@ describe("resolveCollisions", () => {
       owner: "enemy",
       x: 200,
       y: 200,
+      prevX: 200,
+      prevY: 200,
       vx: 0,
       vy: 250,
       radius: 6,
@@ -309,6 +314,50 @@ describe("resolveCollisions", () => {
     assert.equal(match.enemies.length, 0, "boss should be removed");
     assert.equal(match.stageBossSpawned, false, "stageBossSpawned should reset after boss kill");
     assert.ok(match.pendingEvents.some((e) => e.type === "game_event" && e.payload.kind === "boss_defeated"), "should emit boss_defeated event");
+  });
+
+  it("edge-grazing bullet registers a hit via swept segment detection", () => {
+    const match = createMockMatch();
+    const enemy = createEnemy(match, "fighter", 0, "w1");
+    // Place enemy at a known position
+    enemy.x = 200;
+    enemy.y = 200;
+    match.enemies.push(enemy);
+
+    // Bullet travels from (175, 170) to (175, 230) — a vertical path.
+    // Neither endpoint is within hit radius of the enemy center (200, 200),
+    // but the closest point on the segment is (175, 200), which is 25 px away.
+    // Combined radius = PLAYER_BULLET_RADIUS (8) + FIGHTER_STATS.radius (20) = 28.
+    // 25 < 28, so the swept segment check should register a hit.
+    const startX = 175;
+    const startY = 170;
+    const endX = 175;
+    const endY = 230;
+
+    // Verify neither endpoint alone would trigger a hit (point-based check would miss)
+    const endpointDistSqStart = (startX - enemy.x) ** 2 + (startY - enemy.y) ** 2;
+    const endpointDistSqEnd = (endX - enemy.x) ** 2 + (endY - enemy.y) ** 2;
+    const hitRadiusSq = (PLAYER_BULLET_RADIUS + FIGHTER_STATS.radius) ** 2;
+    assert.ok(endpointDistSqStart > hitRadiusSq, "start position should be outside hit radius");
+    assert.ok(endpointDistSqEnd > hitRadiusSq, "end position should be outside hit radius");
+
+    match.bullets.push({
+      id: "pb-edge",
+      owner: "player",
+      ownerId: "p1",
+      x: endX,
+      y: endY,
+      prevX: startX,
+      prevY: startY,
+      vx: 0,
+      vy: -540,
+      radius: PLAYER_BULLET_RADIUS,
+      damage: 999,
+    });
+
+    resolveCollisions(match);
+    assert.equal(match.bullets.length, 0, "bullet should be consumed on hit");
+    assert.equal(match.enemies.length, 0, "enemy should be killed by edge-grazing bullet");
   });
 
   it("normal enemy body collision removes enemy", () => {
@@ -384,6 +433,8 @@ describe("Nebula Run full boss fight simulation", () => {
           ownerId: "p1",
           x: boss.x,
           y: boss.y,
+          prevX: boss.x,
+          prevY: boss.y,
           vx: 0,
           vy: -540,
           radius: 5,

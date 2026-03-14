@@ -959,3 +959,43 @@ h3 {
     transition-duration: 0.01ms;
   }
 }
+
+/* Controller QR code */
+.controller-qr-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+.controller-qr-section h2 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+}
+.controller-qr-hint {
+  font-size: 0.8rem;
+  opacity: 0.5;
+  margin-bottom: 0.75rem;
+}
+.controller-qr-container {
+  display: inline-block;
+  background: #fff;
+  padding: 8px;
+  border-radius: 8px;
+}
+.controller-qr-container svg {
+  display: block;
+}
+.controller-qr-game details summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.controller-qr-game details[open] summary {
+  margin-bottom: 0.5rem;
+}
+.controller-qr-game .controller-qr-container {
+  margin-top: 0.5rem;
+}

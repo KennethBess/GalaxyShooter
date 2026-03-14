@@ -1,4 +1,5 @@
 import { DEFAULT_SHIP_ID, type GameMode, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
+import QRCode from "qrcode";
 import { createRoom, joinRoom, listOpenRooms } from "./api";
 import { RoomConnection } from "./network";
 import { createGame } from "./phaser/game";
@@ -24,7 +25,11 @@ export class App {
     return host;
   })();
   private readonly game = createGame(this.gameHost, (input) => this.connection?.send({ type: "input", payload: input }), () => this.connection?.send({ type: "use_bomb" }));
-  private readonly settings = loadSettings();
+  private readonly settings = (() => {
+    const s = loadSettings();
+    this.game.setMusicVolume(s.musicVolume, s.musicMuted);
+    return s;
+  })();
   private connection: RoomConnection | null = null;
   private session: StoredSession | null = loadSession();
   private selectedShip: ShipId = this.session?.shipId ?? DEFAULT_SHIP_ID;
@@ -73,6 +78,13 @@ export class App {
     if (this.state.screen === "results") {
       this.startResultsAnimation();
     }
+    if (this.state.screen === "lobby") {
+      this.renderQrCode("lobby-qr");
+    }
+    if (this.state.screen === "game") {
+      this.renderQrCode("game-qr");
+    }
+    this.game.playMusic(this.state.screen === "game" ? "battle" : "lobby");
   }
 
   private startResultsAnimation() {
@@ -220,6 +232,11 @@ export class App {
                     : `<button id="toggle-ready" class="secondary-button">${myPlayer?.ready ? "Unready" : "Ready up"}</button>`}
                   <button id="leave-room" class="ghost-button">Leave room</button>
                 </div>
+                <div class="controller-qr-section">
+                  <h2>Mobile Controller</h2>
+                  <p class="controller-qr-hint">Scan with your phone to use it as a gamepad</p>
+                  <div id="lobby-qr" class="controller-qr-container"></div>
+                </div>
               </section>
             </div>
           </main>
@@ -281,6 +298,10 @@ export class App {
               <section class="front-card stack">
                 <label class="toggle"><input id="setting-shake" type="checkbox" ${this.settings.screenshake ? "checked" : ""} /> Screen shake</label>
                 <label class="toggle"><input id="setting-flash" type="checkbox" ${this.settings.reducedFlash ? "checked" : ""} /> Reduced flash</label>
+                <label class="toggle"><input id="setting-mute" type="checkbox" ${this.settings.musicMuted ? "checked" : ""} /> Mute music</label>
+                <label class="setting-range-label">Music volume
+                  <input id="setting-volume" type="range" min="0" max="1" step="0.05" value="${this.settings.musicVolume}" />
+                </label>
                 <div class="lobby-actions">
                   <button id="back-home" class="primary-button">Front page</button>
                 </div>
@@ -320,6 +341,12 @@ export class App {
             <section class="game-card">
               <h2>Combat Feed</h2>
               <ul id="game-feed" class="feed" aria-live="polite" aria-relevant="additions"></ul>
+            </section>
+            <section class="game-card controller-qr-game">
+              <details>
+                <summary>Mobile Controller</summary>
+                <div id="game-qr" class="controller-qr-container"></div>
+              </details>
             </section>
           </aside>
         </section>
@@ -551,6 +578,16 @@ export class App {
     this.root.querySelector("#setting-flash")?.addEventListener("change", (event) => {
       this.settings.reducedFlash = (event.target as HTMLInputElement).checked;
       saveSettings(this.settings);
+    }, { signal });
+    this.root.querySelector("#setting-mute")?.addEventListener("change", (event) => {
+      this.settings.musicMuted = (event.target as HTMLInputElement).checked;
+      saveSettings(this.settings);
+      this.game.setMusicVolume(this.settings.musicVolume, this.settings.musicMuted);
+    }, { signal });
+    this.root.querySelector("#setting-volume")?.addEventListener("input", (event) => {
+      this.settings.musicVolume = Number((event.target as HTMLInputElement).value);
+      saveSettings(this.settings);
+      this.game.setMusicVolume(this.settings.musicVolume, this.settings.musicMuted);
     }, { signal });
   }
   private async refreshOpenRooms() {
@@ -831,6 +868,28 @@ export class App {
       case "settings": return "Settings — Galaxy Shooter";
       default: return "Galaxy Shooter";
     }
+  }
+
+  private getControllerUrl(): string {
+    const origin = window.location.origin;
+    const url = new URL("/controller", origin);
+    url.searchParams.set("room", this.state.room?.roomCode ?? "");
+    url.searchParams.set("player", this.session?.playerId ?? "");
+    return url.toString();
+  }
+
+  private renderQrCode(containerId: string) {
+    const container = this.root.querySelector(`#${containerId}`);
+    if (!container || !this.state.room || !this.session) return;
+    const url = this.getControllerUrl();
+    // QRCode.toString produces trusted SVG from a URL we construct — safe to insert as HTML
+    QRCode.toString(url, { type: "svg", margin: 1, width: 160 }, (err, svg) => {
+      if (err || !svg) return;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svg, "image/svg+xml");
+      const svgEl = doc.documentElement;
+      container.replaceChildren(svgEl);
+    });
   }
 
   private escape(value: string) {

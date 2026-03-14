@@ -162,6 +162,8 @@ const updateEnemies = (match: MatchRuntime, deltaMs: number) => {
 
 const updateBullets = (match: MatchRuntime, deltaMs: number) => {
   for (const bullet of match.bullets) {
+    bullet.prevX = bullet.x;
+    bullet.prevY = bullet.y;
     bullet.x += (bullet.vx * deltaMs) / 1000;
     bullet.y += (bullet.vy * deltaMs) / 1000;
   }

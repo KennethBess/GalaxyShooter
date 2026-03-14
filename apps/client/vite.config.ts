@@ -12,6 +12,10 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        controller: resolve(__dirname, "controller.html")
+      },
       output: {
         manualChunks: {
           phaser: ["phaser"]

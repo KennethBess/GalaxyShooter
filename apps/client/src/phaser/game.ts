@@ -6,6 +6,8 @@ interface GameController {
   setSnapshot: (snapshot: SnapshotState | null, selfPlayerId: string | null) => void;
   clear: () => void;
   destroy: () => void;
+  playMusic: (track: "lobby" | "battle") => void;
+  setMusicVolume: (volume: number, muted: boolean) => void;
 }
 
 interface PositionTarget {
@@ -205,6 +207,11 @@ class BootScene extends Phaser.Scene {
     super("boot");
   }
 
+  preload() {
+    this.load.audio("lobby", "audio/lobby.mp3");
+    this.load.audio("battle", "audio/battle.mp3");
+  }
+
   create() {
     const background = this.make.graphics({ x: 0, y: 0, add: false });
     background.fillStyle(0x07111f, 1);
@@ -239,6 +246,13 @@ class GameScene extends Phaser.Scene {
   private inputState: InputState = { up: false, down: false, left: false, right: false, shoot: false };
   private predictedShotCooldownMs = 0;
   private inputRepeatMs = 0;
+  private currentTrack: "lobby" | "battle" | null = null;
+  private pendingTrack: "lobby" | "battle" | null = null;
+  private sceneReady = false;
+  private lobbyMusic?: Phaser.Sound.BaseSound;
+  private battleMusic?: Phaser.Sound.BaseSound;
+  private musicVolume = 0.5;
+  private musicMuted = false;
   private inputKeys?: {
     up: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
@@ -284,6 +298,12 @@ class GameScene extends Phaser.Scene {
     }, false) as GameScene["inputKeys"];
 
     this.inputKeys?.bomb.on("down", () => this.onBomb());
+
+    this.sceneReady = true;
+    if (this.pendingTrack) {
+      this.startMusic(this.pendingTrack);
+      this.pendingTrack = null;
+    }
   }
 
   update(_time: number, delta: number) {
@@ -356,6 +376,60 @@ class GameScene extends Phaser.Scene {
     this.clearObjects();
     this.hud?.setText("Waiting for room to start");
     this.effectHud?.setText("");
+  }
+
+  startMusic(track: "lobby" | "battle") {
+    if (!this.sceneReady) {
+      this.pendingTrack = track;
+      return;
+    }
+    if (this.currentTrack === track) {
+      return;
+    }
+
+    const fadeDuration = 500;
+    const targetVolume = this.musicMuted ? 0 : this.musicVolume;
+
+    // Fade out the current track
+    const outgoing = this.currentTrack === "lobby" ? this.lobbyMusic : this.currentTrack === "battle" ? this.battleMusic : null;
+    if (outgoing && (outgoing as Phaser.Sound.WebAudioSound).isPlaying) {
+      this.tweens.add({
+        targets: outgoing,
+        volume: 0,
+        duration: fadeDuration,
+        onComplete: () => { outgoing.stop(); }
+      });
+    }
+
+    // Create or resume the incoming track
+    if (track === "lobby" && !this.lobbyMusic) {
+      this.lobbyMusic = this.sound.add("lobby", { loop: true, volume: 0 });
+    }
+    if (track === "battle" && !this.battleMusic) {
+      this.battleMusic = this.sound.add("battle", { loop: true, volume: 0 });
+    }
+
+    const incoming = track === "lobby" ? this.lobbyMusic : this.battleMusic;
+    if (incoming) {
+      incoming.play({ volume: 0 });
+      this.tweens.add({
+        targets: incoming,
+        volume: targetVolume,
+        duration: fadeDuration
+      });
+    }
+
+    this.currentTrack = track;
+  }
+
+  applyMusicVolume(volume: number, muted: boolean) {
+    this.musicVolume = volume;
+    this.musicMuted = muted;
+    const effectiveVolume = muted ? 0 : volume;
+    const active = this.currentTrack === "lobby" ? this.lobbyMusic : this.currentTrack === "battle" ? this.battleMusic : null;
+    if (active && (active as Phaser.Sound.WebAudioSound).isPlaying) {
+      (active as Phaser.Sound.WebAudioSound).setVolume(effectiveVolume);
+    }
   }
 
   private predictSelfMovement(deltaMs: number) {
@@ -648,6 +722,12 @@ export const createGame = (
     },
     destroy() {
       game.destroy(true);
+    },
+    playMusic(track) {
+      liveScene.startMusic(track);
+    },
+    setMusicVolume(volume, muted) {
+      liveScene.applyMusicVolume(volume, muted);
     }
   };
 };

@@ -59,6 +59,8 @@ export interface RuntimeBullet {
   ownerId?: string;
   x: number;
   y: number;
+  prevX: number;
+  prevY: number;
   vx: number;
   vy: number;
   radius: number;
@@ -123,7 +125,7 @@ export const SCORE_FIGHTER = 120;
 
 // --- Player bullet stats ---
 export const PLAYER_BULLET_SPEED = -540;
-export const PLAYER_BULLET_RADIUS = 5;
+export const PLAYER_BULLET_RADIUS = 8;
 export const PLAYER_BULLET_OFFSET_Y = -18;
 export const PLAYER_BULLET_DAMAGE = { level1: 9, level2: 10, level3: 12 } as const;
 
@@ -172,6 +174,19 @@ export const distanceSq = (ax: number, ay: number, bx: number, by: number) => {
   const dx = ax - bx;
   const dy = ay - by;
   return dx * dx + dy * dy;
+};
+
+export const segmentPointDistanceSq = (ax: number, ay: number, bx: number, by: number, px: number, py: number): number => {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const lenSq = abx * abx + aby * aby;
+  if (lenSq === 0) {
+    return distanceSq(ax, ay, px, py);
+  }
+  const t = clamp(((px - ax) * abx + (py - ay) * aby) / lenSq, 0, 1);
+  const cx = ax + t * abx;
+  const cy = ay + t * aby;
+  return distanceSq(cx, cy, px, py);
 };
 
 export const nextId = (match: MatchRuntime, prefix: string) => {

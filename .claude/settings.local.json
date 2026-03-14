@@ -33,7 +33,16 @@
       "Bash(grep -E '^\\\\| `/opsx:' c:/Dev/Codex/Test01/CLAUDE.md)",
       "Bash(git -C C:/Dev/Codex/Test01 log --oneline -10)",
       "Bash(node -e \"const pkg = require\\(''C:/Dev/Codex/Test01/package-lock.json''\\); console.log\\(pkg.packages[''node_modules/@fission-ai/openspec'']?.version || ''NOT FOUND''\\)\")",
-      "Bash(openspec new:*)"
+      "Bash(openspec new:*)",
+      "Bash(node -e \":*)",
+      "Read(//c/Users/KennethBess/AppData/Local/npm-cache/_logs/**)",
+      "Bash(xargs grep:*)",
+      "Bash(openspec instructions:*)",
+      "Bash(openspec status:*)",
+      "Bash(grep -A2 '\"\"test\"\"' apps/server/package.json)",
+      "Bash(node --import tsx --test test/controller.test.ts)",
+      "Bash(grep '\"\"test\"\"' package.json)",
+      "Bash(openspec list:*)"
     ],
     "additionalDirectories": [
       "c:\\Dev\\Codex\\Test01\\docs\\superpowers",
