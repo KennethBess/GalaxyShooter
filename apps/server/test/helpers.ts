@@ -1,4 +1,5 @@
 import { WebSocketConnectionGateway } from "../src/connectionGateway.js";
+import { InMemoryLeaderboardRepository } from "../src/leaderboardRepository.js";
 import { InMemoryRoomDirectory } from "../src/roomDirectory.js";
 import { RoomManager } from "../src/roomManager.js";
 import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
@@ -25,7 +26,8 @@ export const createTestManager = () =>
       new InMemoryRoomDirectory(),
       new InMemoryRoomMessageBus(),
       "local",
-      3600
+      3600,
+      new InMemoryLeaderboardRepository()
     )
   );
 

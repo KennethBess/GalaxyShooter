@@ -1,8 +1,12 @@
 import type { RoomState, ServerMessage } from "@shared/index";
 import { createMatch, queueBomb, updateMatch } from "./game.js";
+import type { LeaderboardRepository } from "./leaderboardRepository.js";
+import { logError } from "./logger.js";
 import { defaultInputState, type RoomRuntime } from "./runtime.js";
 
 export class MatchService {
+  constructor(private readonly leaderboard: LeaderboardRepository) {}
+
   start(state: RoomState, runtime: RoomRuntime): ServerMessage[] {
     if (state.status !== "waiting") {
       throw new Error("Room is not available for starting");
@@ -41,7 +45,7 @@ export class MatchService {
     runtime.match?.players.delete(playerId);
   }
 
-  tick(state: RoomState, runtime: RoomRuntime, deltaMs: number): ServerMessage[] {
+  async tick(state: RoomState, runtime: RoomRuntime, deltaMs: number): Promise<ServerMessage[]> {
     if (!runtime.match || state.status !== "in_match") {
       return [];
     }
@@ -57,6 +61,23 @@ export class MatchService {
 
     const messages: ServerMessage[] = [{ type: "snapshot", payload: snapshot }, ...events];
     if (result) {
+      // Submit to leaderboard (non-blocking — errors logged, never block match flow)
+      try {
+        const hostPlayer = state.players.find((p) => p.isHost);
+        const submitResult = await this.leaderboard.submit({
+          playerName: hostPlayer?.name ?? state.players[0]?.name ?? "Unknown",
+          score: result.score,
+          mode: result.mode,
+          stageReached: result.stageReached,
+          durationMs: result.durationMs,
+          playerCount: result.players.length
+        });
+        result.leaderboardRank = submitResult.rank;
+      } catch (error) {
+        logError("Leaderboard submission failed", error, { roomCode: state.roomCode });
+        result.leaderboardRank = null;
+      }
+
       state.status = "waiting";
       state.teamLives = 0;
       runtime.match = undefined;

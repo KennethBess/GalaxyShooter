@@ -159,6 +159,19 @@ export interface ResultSummary {
   stageReached: number;
   durationMs: number;
   players: ResultPlayerSummary[];
+  leaderboardRank: number | null;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  playerName: string;
+  score: number;
+  mode: GameMode;
+  stageReached: number;
+  durationMs: number;
+  playerCount: number;
+  achievedAt: number;
+  rank: number;
 }
 
 export interface StageDef {

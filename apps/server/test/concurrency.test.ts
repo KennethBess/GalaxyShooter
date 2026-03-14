@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { WebSocketConnectionGateway } from "../src/connectionGateway.js";
+import { InMemoryLeaderboardRepository } from "../src/leaderboardRepository.js";
 import { InMemoryRoomDirectory } from "../src/roomDirectory.js";
 import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
 import { InMemoryRoomRepository } from "../src/roomRepository.js";
@@ -18,7 +19,8 @@ const createServicePair = () => {
     directory,
     bus,
     "instance-a",
-    3600
+    3600,
+    new InMemoryLeaderboardRepository()
   );
   const serviceB = new RoomService(
     repository,
@@ -27,7 +29,8 @@ const createServicePair = () => {
     directory,
     bus,
     "instance-b",
-    3600
+    3600,
+    new InMemoryLeaderboardRepository()
   );
   return { serviceA, serviceB, directory };
 };

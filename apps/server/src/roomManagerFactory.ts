@@ -2,6 +2,7 @@ import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import { createClient } from "redis";
 import { loadBackendConfig } from "./config.js";
 import { type ConnectionGateway, WebSocketConnectionGateway } from "./connectionGateway.js";
+import { InMemoryLeaderboardRepository, type LeaderboardRepository, RedisLeaderboardRepository } from "./leaderboardRepository.js";
 import { InMemoryRoomDirectory, RedisRoomDirectory } from "./roomDirectory.js";
 import { RoomManager } from "./roomManager.js";
 import { InMemoryRoomMessageBus, RedisRoomMessageBus } from "./roomMessageBus.js";
@@ -21,6 +22,7 @@ export type RealtimeModeConfig =
 
 export interface RoomManagerBootstrap {
   roomManager: RoomManager;
+  leaderboard: LeaderboardRepository;
   realtime: RealtimeModeConfig;
   dispose: () => Promise<void>;
 }
@@ -47,6 +49,7 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
     : new WebSocketConnectionGateway();
 
   if (!config.redisUrl) {
+    const leaderboard = new InMemoryLeaderboardRepository();
     const service = new RoomService(
       new InMemoryRoomRepository(),
       runtimeRegistry,
@@ -54,10 +57,12 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
       new InMemoryRoomDirectory(),
       new InMemoryRoomMessageBus(),
       config.instanceId,
-      config.roomOwnerTtlSeconds
+      config.roomOwnerTtlSeconds,
+      leaderboard
     );
     return {
       roomManager: new RoomManager(service),
+      leaderboard,
       realtime,
       dispose: async () => {}
     };
@@ -81,6 +86,7 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
     const bus = new RedisRoomMessageBus(commandClient, subscriptionClient);
     await bus.initialize();
 
+    const leaderboard = new RedisLeaderboardRepository(eventClient);
     const service = new RoomService(
       new RedisRoomRepository(eventClient, config.roomStateTtlSeconds),
       runtimeRegistry,
@@ -88,11 +94,13 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
       new RedisRoomDirectory(eventClient, config.roomOwnerTtlSeconds),
       bus,
       config.instanceId,
-      config.roomOwnerTtlSeconds
+      config.roomOwnerTtlSeconds,
+      leaderboard
     );
 
     return {
       roomManager: new RoomManager(service),
+      leaderboard,
       realtime,
       dispose: async () => {
         await bus.close();

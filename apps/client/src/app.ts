@@ -1,6 +1,6 @@
-import { DEFAULT_SHIP_ID, type GameMode, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
+import { DEFAULT_SHIP_ID, type GameMode, type LeaderboardEntry, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
 import QRCode from "qrcode";
-import { createRoom, joinRoom, listOpenRooms } from "./api";
+import { createRoom, fetchLeaderboard, joinRoom, listOpenRooms } from "./api";
 import { RoomConnection } from "./network";
 import { createGame } from "./phaser/game";
 import { clearSession, loadScores, loadSession, loadSettings, type StoredSession, saveScore, saveSession, saveSettings } from "./storage";
@@ -16,6 +16,12 @@ interface AppState {
   eventLog: { kind: string; text: string }[];
   openRooms: OpenRoomSummary[];
   roomsBusy: boolean;
+  leaderboardRank: number | null;
+  leaderboardMode: GameMode;
+  leaderboardEntries: LeaderboardEntry[];
+  leaderboardLoading: boolean;
+  leaderboardError: string | null;
+  previousScreen: "home" | "results";
 }
 
 export class App {
@@ -45,7 +51,13 @@ export class App {
     busy: false,
     eventLog: [],
     openRooms: [],
-    roomsBusy: false
+    roomsBusy: false,
+    leaderboardRank: null,
+    leaderboardMode: "campaign",
+    leaderboardEntries: [],
+    leaderboardLoading: false,
+    leaderboardError: null,
+    previousScreen: "home"
   };
 
   constructor(private readonly root: HTMLElement) {
@@ -168,7 +180,7 @@ export class App {
                   <button type="submit" class="primary-button" ${this.state.busy ? "disabled" : ""}>${this.homeMode === "create" ? "Generate room code" : "Join squad"}</button>
                 </form>
                 <div class="utility-actions">
-                  <button id="show-scores" class="secondary-button">High Scores</button>
+                  <button id="show-leaderboard" class="secondary-button">Leaderboard</button>
                   <button id="show-settings" class="secondary-button">Settings</button>
                 </div>
               </section>
@@ -270,20 +282,20 @@ export class App {
       }
       case "scores":
         return `
-          <main id="maincontent" tabindex="-1" class="front-page screen-enter">
-            <div class="front-shell compact-shell">
-              <header class="hero compact-hero">
-                <p class="eyebrow">Local board</p>
-                <h1>High Scores</h1>
+          <main id="maincontent" tabindex="-1" class="front-page lb-page screen-enter">
+            <div class="lb-container">
+              <header class="lb-header">
+                <p class="eyebrow">Global Rankings</p>
+                <h1>Leaderboard</h1>
               </header>
-              <section class="front-card">
-                <ul class="roster compact-roster">
-                  ${scores.map((entry) => `<li><span>${this.escape(entry.playerName)} / ${this.escape(entry.mode)}</span><span>${entry.score}</span></li>`).join("") || "<li><span>No scores yet</span><span>-</span></li>"}
-                </ul>
-                <div class="lobby-actions">
-                  <button id="back-home" class="primary-button">Front page</button>
-                </div>
+              <div class="lb-tabs" role="tablist" aria-label="Leaderboard mode">
+                <button class="lb-tab ${this.state.leaderboardMode === "campaign" ? "active" : ""}" role="tab" aria-selected="${this.state.leaderboardMode === "campaign"}" data-lb-mode="campaign">Campaign</button>
+                <button class="lb-tab ${this.state.leaderboardMode === "survival" ? "active" : ""}" role="tab" aria-selected="${this.state.leaderboardMode === "survival"}" data-lb-mode="survival">Survival</button>
+              </div>
+              <section class="lb-body">
+                ${this.renderLeaderboardBody()}
               </section>
+              <button id="back-from-scores" class="secondary-button lb-back">Back</button>
             </div>
           </main>
         `;
@@ -311,6 +323,52 @@ export class App {
         `;
       default:
         return "";
+    }
+  }
+
+  private renderLeaderboardBody() {
+    if (this.state.leaderboardLoading) {
+      return '<div class="lb-status"><div class="lb-spinner"></div><p>Loading scores...</p></div>';
+    }
+    if (this.state.leaderboardError) {
+      return `<div class="lb-status"><p>${this.escape(this.state.leaderboardError)}</p><button id="lb-retry" class="secondary-button">Retry</button></div>`;
+    }
+    if (this.state.leaderboardEntries.length === 0) {
+      return '<div class="lb-status"><p>No scores yet — be the first!</p></div>';
+    }
+    const highlightRank = this.state.previousScreen === "results" ? this.state.leaderboardRank : null;
+    const medals = ["", "\u{1F947}", "\u{1F948}", "\u{1F949}"];
+    const rows = this.state.leaderboardEntries.map((entry, i) => {
+      const rank = i + 1;
+      const tierClass = rank <= 3 ? `lb-tier-${rank}` : "";
+      const highlightClass = rank === highlightRank ? "lb-highlight" : "";
+      const date = new Date(entry.achievedAt).toLocaleDateString();
+      const badge = rank <= 3 ? `<span class="lb-medal">${medals[rank]}</span>` : `<span class="lb-rank-num">${rank}</span>`;
+      return `<div class="lb-entry ${tierClass} ${highlightClass}" style="animation-delay:${i * 50}ms">
+        <div class="lb-rank-cell">${badge}</div>
+        <div class="lb-info">
+          <span class="lb-pilot">${this.escape(entry.playerName)}</span>
+          <span class="lb-meta">Stage ${entry.stageReached} · ${date}</span>
+        </div>
+        <div class="lb-score-cell">${entry.score.toLocaleString()}</div>
+      </div>`;
+    }).join("");
+    return `<div class="lb-list">${rows}</div>`;
+  }
+
+  private async loadLeaderboard(mode: GameMode) {
+    this.state.leaderboardMode = mode;
+    this.state.leaderboardLoading = true;
+    this.state.leaderboardError = null;
+    this.state.leaderboardEntries = [];
+    this.render();
+    try {
+      this.state.leaderboardEntries = await fetchLeaderboard(mode);
+    } catch (error) {
+      this.state.leaderboardError = error instanceof Error ? error.message : "Failed to load leaderboard";
+    } finally {
+      this.state.leaderboardLoading = false;
+      this.render();
     }
   }
 
@@ -551,15 +609,42 @@ export class App {
       }, { signal });
     });
 
-    this.root.querySelector("#show-scores")?.addEventListener("click", () => {
+    this.root.querySelector("#show-leaderboard")?.addEventListener("click", () => {
+      this.state.previousScreen = "home";
+      this.state.leaderboardRank = null;
       this.state.screen = "scores";
-      this.render();
+      void this.loadLeaderboard(this.state.leaderboardMode);
+    }, { signal });
+    this.root.querySelector("#show-scores")?.addEventListener("click", () => {
+      this.state.previousScreen = "results";
+      this.state.leaderboardMode = this.state.result?.mode ?? "campaign";
+      this.state.screen = "scores";
+      void this.loadLeaderboard(this.state.leaderboardMode);
     }, { signal });
     this.root.querySelector("#show-settings")?.addEventListener("click", () => {
       this.state.screen = "settings";
       this.render();
     }, { signal });
     this.root.querySelector("#back-home")?.addEventListener("click", () => this.resetToHome(), { signal });
+    this.root.querySelector("#back-from-scores")?.addEventListener("click", () => {
+      if (this.state.previousScreen === "results" && this.state.result) {
+        this.state.screen = "results";
+        this.render();
+      } else {
+        this.resetToHome();
+      }
+    }, { signal });
+    this.root.querySelectorAll<HTMLElement>("[data-lb-mode]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const mode = tab.dataset.lbMode as GameMode;
+        if (mode !== this.state.leaderboardMode) {
+          void this.loadLeaderboard(mode);
+        }
+      }, { signal });
+    });
+    this.root.querySelector("#lb-retry")?.addEventListener("click", () => {
+      void this.loadLeaderboard(this.state.leaderboardMode);
+    }, { signal });
     this.root.querySelector("#back-lobby")?.addEventListener("click", () => this.backToLobby(), { signal });
     this.root.querySelector("#leave-room")?.addEventListener("click", () => this.leaveRoom(), { signal });
     this.root.querySelector("#toggle-ready")?.addEventListener("click", () => {
@@ -720,6 +805,7 @@ export class App {
         return;
       case "match_result":
         this.state.result = message.payload;
+        this.state.leaderboardRank = message.payload.leaderboardRank;
         this.state.screen = "results";
         this.state.notice = message.payload.outcome === "victory" ? "Galaxy Shooter survived the run." : "The squad was overwhelmed.";
         if (this.session) {
@@ -834,7 +920,13 @@ export class App {
       busy: false,
       eventLog: [],
       openRooms: [],
-      roomsBusy: false
+      roomsBusy: false,
+      leaderboardRank: null,
+      leaderboardMode: "campaign",
+      leaderboardEntries: [],
+      leaderboardLoading: false,
+      leaderboardError: null,
+      previousScreen: "home"
     };
     this.game.clear();
     clearSession();

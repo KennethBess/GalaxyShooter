@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { RECONNECT_GRACE_MS } from "@shared/index";
 import { WebSocketConnectionGateway } from "../src/connectionGateway.js";
+import { InMemoryLeaderboardRepository } from "../src/leaderboardRepository.js";
 import { InMemoryRoomDirectory } from "../src/roomDirectory.js";
 import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
 import { InMemoryRoomRepository } from "../src/roomRepository.js";
@@ -21,7 +22,8 @@ const createService = () => {
     directory,
     bus,
     "test-instance",
-    3600
+    3600,
+    new InMemoryLeaderboardRepository()
   );
   return { service, repository, runtimes, gateway, directory };
 };

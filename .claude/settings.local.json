@@ -42,7 +42,11 @@
       "Bash(grep -A2 '\"\"test\"\"' apps/server/package.json)",
       "Bash(node --import tsx --test test/controller.test.ts)",
       "Bash(grep '\"\"test\"\"' package.json)",
-      "Bash(openspec list:*)"
+      "Bash(openspec list:*)",
+      "Bash(openspec complete:*)",
+      "Bash(openspec --help)",
+      "Bash(npx biome:*)",
+      "Bash(node --import tsx --test test/leaderboard.test.ts)"
     ],
     "additionalDirectories": [
       "c:\\Dev\\Codex\\Test01\\docs\\superpowers",

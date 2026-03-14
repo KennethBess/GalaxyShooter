@@ -14,12 +14,12 @@ import { WebSocketServer } from "ws";
 import { gameMetrics, logError, logInfo, requestContext, trackRequest } from "./logger.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 import { normalizeRoomCode } from "./runtime.js";
-import { parseControllerNegotiateRequest, parseCreateRoomRequest, parseJoinRoomRequest, parseRealtimeNegotiationRequest } from "./validation.js";
+import { parseControllerNegotiateRequest, parseCreateRoomRequest, parseJoinRoomRequest, parseLeaderboardMode, parseRealtimeNegotiationRequest } from "./validation.js";
 
 const app = express();
 app.set("trust proxy", 1);
 
-const { roomManager, realtime, dispose } = await createRoomManagerFromEnv();
+const { roomManager, leaderboard, realtime, dispose } = await createRoomManagerFromEnv();
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -259,6 +259,17 @@ app.get("/rooms/open", async (req, res) => {
   } catch (error) {
     logError("List open rooms failed", error);
     res.status(500).json({ message: error instanceof Error ? error.message : "Unable to list open rooms" });
+  }
+});
+
+app.get("/api/leaderboard", async (req, res) => {
+  try {
+    const mode = parseLeaderboardMode(req.query.mode);
+    const entries = await leaderboard.getTopScores(mode);
+    res.status(200).json(entries);
+  } catch (error) {
+    logError("Leaderboard fetch failed", error);
+    res.status(400).json({ message: error instanceof Error ? error.message : "Invalid mode parameter" });
   }
 });
 

@@ -2,6 +2,7 @@ import type { ClientMessage, OpenRoomSummary, PlayerSlot, RoomState, RoomSummary
 import { DEFAULT_SHIP_ID, isShipId, MAX_PLAYERS, RECONNECT_GRACE_MS } from "@shared/index";
 import type WebSocket from "ws";
 import type { ConnectionGateway } from "./connectionGateway.js";
+import type { LeaderboardRepository } from "./leaderboardRepository.js";
 import { logError, logInfo } from "./logger.js";
 import { MatchService } from "./matchService.js";
 import type { RoomDirectory } from "./roomDirectory.js";
@@ -37,7 +38,8 @@ export class RoomService {
     private readonly bus: RoomMessageBus,
     private readonly instanceId: string,
     private readonly ownershipTtlSeconds: number,
-    private readonly matches = new MatchService()
+    leaderboard: LeaderboardRepository,
+    private readonly matches = new MatchService(leaderboard)
   ) {
     this.bus.onCommand((command) => {
       void this.handleDistributedCommand(command);
@@ -286,7 +288,7 @@ export class RoomService {
           );
           continue;
         }
-        const messages = this.matches.tick(state, runtime, deltaMs);
+        const messages = await this.matches.tick(state, runtime, deltaMs);
         if (messages.length > 0) {
           this.scheduleSave(state);
           void this.emitDistributed(state.roomCode, messages).catch(

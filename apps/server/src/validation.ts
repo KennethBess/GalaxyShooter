@@ -24,7 +24,10 @@ const controllerNegotiateRequestSchema = z.object({
   playerId: z.string().min(1),
 });
 
+const leaderboardModeSchema = z.enum(["campaign", "survival"]);
+
 export const parseCreateRoomRequest = (body: unknown) => createRoomRequestSchema.parse(body);
 export const parseJoinRoomRequest = (body: unknown) => joinRoomRequestSchema.parse(body);
 export const parseRealtimeNegotiationRequest = (body: unknown) => realtimeNegotiationRequestSchema.parse(body);
 export const parseControllerNegotiateRequest = (body: unknown) => controllerNegotiateRequestSchema.parse(body);
+export const parseLeaderboardMode = (value: unknown) => leaderboardModeSchema.parse(value);

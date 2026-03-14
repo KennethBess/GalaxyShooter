@@ -2,7 +2,7 @@ import type { EnemyKind } from "@shared/index";
 import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "@shared/index";
 import {
   BOSS_FIRE_COOLDOWN_MS, BOSS_HP_BASE, BOSS_INITIAL_VX, BOSS_INITIAL_VY, BOSS_RADIUS, BOSS_SPAWN_Y,
-  clamp, distanceSq, segmentPointDistanceSq,
+  clamp, distanceSq, 
   ENEMY_BULLET_RADIUS_LARGE, ENEMY_BULLET_RADIUS_SMALL, ENEMY_BULLET_SPEED_BASE, ENEMY_BULLET_SPEED_HEAVY,
   ENEMY_DRIFT_SPEED, ENEMY_SPAWN_Y,
   FIGHTER_FIRE_COOLDOWN_MS, FIGHTER_STATS, 
@@ -10,11 +10,11 @@ import {
   KAMIKAZE_STATS, LANES, 
   type MatchRuntime, nextId,
   PICKUP_BOSS_DROP_SPEED, PICKUP_COLLECT_RADIUS, PICKUP_DROP_SPEED,
-  RAPID_FIRE_DURATION_MS, SHIELD_DURATION_MS,
   PLAYER_BULLET_DAMAGE, PLAYER_BULLET_OFFSET_Y, PLAYER_BULLET_RADIUS, PLAYER_BULLET_SPEED,
-  PLAYER_HITBOX_RADIUS, queueEvent,type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer, 
-  SCORE_BOSS, SCORE_FIGHTER, SCORE_HEAVY,
-  SURVIVAL_BOSS_INTERVAL_MS
+  PLAYER_HITBOX_RADIUS, queueEvent,
+  RAPID_FIRE_DURATION_MS, type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer, 
+  SCORE_BOSS, SCORE_FIGHTER, SCORE_HEAVY,SHIELD_DURATION_MS,
+  SURVIVAL_BOSS_INTERVAL_MS, segmentPointDistanceSq
 } from "./gameTypes.js";
 import { BOSS_PHASES, CAMPAIGN_STAGES } from "./stages.js";
 
@@ -160,7 +160,8 @@ export const hitPlayer = (match: MatchRuntime, player: RuntimePlayer) => {
       score: [...match.players.values()].reduce((sum, current) => sum + current.score, 0),
       stageReached: match.mode === "campaign" ? match.stageIndex + 1 : match.stageIndex,
       durationMs: match.elapsedMs,
-      players: [...match.players.values()].map((current) => ({ playerId: current.playerId, name: current.name, shipId: current.shipId, score: current.score }))
+      players: [...match.players.values()].map((current) => ({ playerId: current.playerId, name: current.name, shipId: current.shipId, score: current.score })),
+      leaderboardRank: null
     };
   }
 };
@@ -186,7 +187,8 @@ export const killEnemy = (match: MatchRuntime, enemyId: string, ownerId?: string
           score: [...match.players.values()].reduce((sum, current) => sum + current.score, 0),
           stageReached: CAMPAIGN_STAGES.length,
           durationMs: match.elapsedMs,
-          players: [...match.players.values()].map((current) => ({ playerId: current.playerId, name: current.name, shipId: current.shipId, score: current.score }))
+          players: [...match.players.values()].map((current) => ({ playerId: current.playerId, name: current.name, shipId: current.shipId, score: current.score })),
+          leaderboardRank: null
         };
       } else {
         const clearedStageLabel = match.stageLabel;

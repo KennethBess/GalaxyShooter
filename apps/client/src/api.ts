@@ -1,6 +1,8 @@
 import type {
   CreateRoomRequest,
+  GameMode,
   JoinRoomRequest,
+  LeaderboardEntry,
   OpenRoomSummary,
   RealtimeNegotiationRequest,
   RealtimeNegotiationResponse,
@@ -51,3 +53,6 @@ export const negotiateRealtime = (payload: RealtimeNegotiationRequest) =>
     method: "POST",
     body: JSON.stringify(payload)
   });
+
+export const fetchLeaderboard = (mode: GameMode) =>
+  request<LeaderboardEntry[]>(`/api/leaderboard?mode=${mode}`);

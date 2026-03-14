@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { WebSocketConnectionGateway } from "../src/connectionGateway.js";
 import { createMatch, updateMatch } from "../src/game.js";
+import { InMemoryLeaderboardRepository } from "../src/leaderboardRepository.js";
 import { InMemoryRoomDirectory } from "../src/roomDirectory.js";
 import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
 import { InMemoryRoomRepository } from "../src/roomRepository.js";
@@ -114,7 +115,7 @@ test("completed match returns room to waiting and supports another round", async
   const bus = new InMemoryRoomMessageBus();
   const runtimeRegistry = new InMemoryRoomRuntimeRegistry();
   const gateway = new WebSocketConnectionGateway();
-  const service = new RoomService(repository, runtimeRegistry, gateway, directory, bus, "owner-a", 3600);
+  const service = new RoomService(repository, runtimeRegistry, gateway, directory, bus, "owner-a", 3600, new InMemoryLeaderboardRepository());
   const host = await service.createRoom("Host", "azure");
   const wing = await service.joinRoom(host.roomCode, "Wing", "emerald");
   const hostSocket = new FakeSocket();
@@ -137,7 +138,8 @@ test("completed match returns room to waiting and supports another round", async
     players: [
       { playerId: host.playerId, name: "Host", shipId: "azure", score: 900 },
       { playerId: wing.playerId, name: "Wing", shipId: "emerald", score: 334 }
-    ]
+    ],
+    leaderboardRank: null
   };
 
   await service.tick(50);
@@ -164,7 +166,7 @@ test("stale in_match room recovers on reconnect and can start again", async () =
   const bus = new InMemoryRoomMessageBus();
   const runtimeRegistry = new InMemoryRoomRuntimeRegistry();
   const gateway = new WebSocketConnectionGateway();
-  const service = new RoomService(repository, runtimeRegistry, gateway, directory, bus, "owner-a", 3600);
+  const service = new RoomService(repository, runtimeRegistry, gateway, directory, bus, "owner-a", 3600, new InMemoryLeaderboardRepository());
   const host = await service.createRoom("Host", "azure");
   const hostSocket = new FakeSocket();
 
@@ -227,7 +229,8 @@ test("non-owner instance routes ready command to owner and receives distributed 
     directory,
     bus,
     "owner-a",
-    3600
+    3600,
+    new InMemoryLeaderboardRepository()
   );
   const remoteService = new RoomService(
     repository,
@@ -236,7 +239,8 @@ test("non-owner instance routes ready command to owner and receives distributed 
     directory,
     bus,
     "owner-b",
-    3600
+    3600,
+    new InMemoryLeaderboardRepository()
   );
 
   const host = await ownerService.createRoom("Host", "azure");
