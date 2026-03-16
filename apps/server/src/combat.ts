@@ -12,7 +12,8 @@ import {
   PICKUP_BOSS_DROP_SPEED, PICKUP_COLLECT_RADIUS, PICKUP_DROP_SPEED,
   PLAYER_BULLET_DAMAGE, PLAYER_BULLET_OFFSET_Y, PLAYER_BULLET_RADIUS, PLAYER_BULLET_SPEED,
   PLAYER_HITBOX_RADIUS, queueEvent,
-  RAPID_FIRE_DURATION_MS, type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer, 
+  LASER_BEAM_HALF_WIDTH, LASER_DAMAGE_PER_TICK, LASER_DURATION_MS,
+  RAPID_FIRE_DURATION_MS, type RuntimeBullet, type RuntimeEnemy, type RuntimePickup, type RuntimePlayer,
   SCORE_BOSS, SCORE_FIGHTER, SCORE_HEAVY,SHIELD_DURATION_MS,
   SURVIVAL_BOSS_INTERVAL_MS, segmentPointDistanceSq
 } from "./gameTypes.js";
@@ -87,6 +88,8 @@ export const maybeDropPickup = (match: MatchRuntime, enemy: RuntimeEnemy) => {
     match.pickups.push({ id: nextId(match, "pickup"), kind: "rapid_fire", x: enemy.x, y: enemy.y, vy: PICKUP_DROP_SPEED });
   } else if (match.idCounter % 7 === 0) {
     match.pickups.push({ id: nextId(match, "pickup"), kind: "weapon", x: enemy.x, y: enemy.y, vy: PICKUP_DROP_SPEED });
+  } else if (match.idCounter % 11 === 0) {
+    match.pickups.push({ id: nextId(match, "pickup"), kind: "laser", x: enemy.x, y: enemy.y, vy: PICKUP_DROP_SPEED });
   }
 };
 
@@ -214,6 +217,24 @@ export const killEnemy = (match: MatchRuntime, enemyId: string, ownerId?: string
   }
 };
 
+export const resolveLaserBeam = (match: MatchRuntime, player: RuntimePlayer) => {
+  const beamX = player.x;
+  const beamTop = 0;
+  const beamBottom = player.y + PLAYER_BULLET_OFFSET_Y;
+  for (const enemy of match.enemies) {
+    if (enemy.y < beamTop || enemy.y > beamBottom + enemy.radius) {
+      continue;
+    }
+    const horizontalDist = Math.abs(enemy.x - beamX);
+    if (horizontalDist < LASER_BEAM_HALF_WIDTH + enemy.radius) {
+      enemy.hp -= LASER_DAMAGE_PER_TICK;
+      if (enemy.hp <= 0) {
+        killEnemy(match, enemy.id, player.playerId);
+      }
+    }
+  }
+};
+
 export const resolveCollisions = (match: MatchRuntime) => {
   const remainingBullets: RuntimeBullet[] = [];
   for (const bullet of match.bullets) {
@@ -288,6 +309,8 @@ export const resolveCollisions = (match: MatchRuntime) => {
       collector.shieldMs = SHIELD_DURATION_MS;
     } else if (pickup.kind === "rapid_fire") {
       collector.rapidFireMs = RAPID_FIRE_DURATION_MS;
+    } else if (pickup.kind === "laser") {
+      collector.laserMs = LASER_DURATION_MS;
     }
     queueEvent(match, "pickup", `${collector.name} picked up ${pickup.kind}`);
   }

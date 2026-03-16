@@ -47,7 +47,7 @@ export type GameMode = "campaign" | "survival";
 export type RoomStatus = "waiting" | "starting" | "in_match" | "results" | "closed";
 export type MatchOutcome = "victory" | "defeat";
 export type EnemyKind = "fighter" | "heavy" | "kamikaze" | "boss";
-export type PickupKind = "weapon" | "bomb" | "shield" | "rapid_fire";
+export type PickupKind = "weapon" | "bomb" | "shield" | "rapid_fire" | "laser";
 
 export interface PlayerSlot {
   playerId: string;
@@ -102,6 +102,7 @@ export interface SnapshotPlayer {
   score: number;
   shieldActive: boolean;
   rapidFireActive: boolean;
+  laserActive: boolean;
 }
 
 export interface SnapshotEnemy {

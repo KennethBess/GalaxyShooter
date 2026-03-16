@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: SnapshotPlayer carries per-player active effect state
 Each entry in `SnapshotState.players` SHALL include `shieldActive: boolean`, `rapidFireActive: boolean`, and `laserActive: boolean` fields indicating whether the respective timed power-up effect is currently active for that player.
 

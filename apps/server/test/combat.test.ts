@@ -7,6 +7,7 @@ import {
   hitPlayer,
   killEnemy,
   resolveCollisions,
+  resolveLaserBeam,
   spawnPlayerVolley,
 } from "../src/combat.js";
 import { createMatch, updateMatch } from "../src/game.js";
@@ -23,6 +24,9 @@ import {
   FIGHTER_STATS,
   HEAVY_STATS,
   KAMIKAZE_STATS,
+  LASER_BEAM_HALF_WIDTH,
+  LASER_DAMAGE_PER_TICK,
+  LASER_DURATION_MS,
   PLAYER_BULLET_DAMAGE,
   PLAYER_BULLET_RADIUS,
   PLAYER_HITBOX_RADIUS,
@@ -50,6 +54,7 @@ function createMockPlayer(overrides: Partial<RuntimePlayer> = {}): RuntimePlayer
     pendingBomb: false,
     shieldMs: 0,
     rapidFireMs: 0,
+    laserMs: 0,
     ...overrides,
   };
 }
@@ -566,5 +571,107 @@ describe("enemy swept collision detection", () => {
     const boss = createEnemy(match, "fighter", 0, "w2", true);
     assert.equal(boss.prevX, boss.x);
     assert.equal(boss.prevY, boss.y);
+  });
+});
+
+describe("laser beam weapon", () => {
+  it("collecting laser pickup sets laserMs to LASER_DURATION_MS", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 300;
+    player.y = 300;
+    match.pickups.push({ id: "pu-laser", kind: "laser", x: 300, y: 300, vy: 0 });
+    resolveCollisions(match);
+    assert.equal(match.pickups.length, 0, "pickup should be consumed");
+    assert.equal(player.laserMs, LASER_DURATION_MS);
+  });
+
+  it("beam damages enemy whose circle intersects the beam rectangle", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 640;
+    player.y = 600;
+    player.laserMs = LASER_DURATION_MS;
+
+    const enemy = createEnemy(match, "heavy", 0, "w1");
+    enemy.x = 645;
+    enemy.y = 200;
+    const hpBefore = enemy.hp;
+    match.enemies.push(enemy);
+
+    resolveLaserBeam(match, player);
+    assert.equal(enemy.hp, hpBefore - LASER_DAMAGE_PER_TICK, "enemy should take laser damage");
+  });
+
+  it("beam does not damage enemy outside beam width", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 640;
+    player.y = 600;
+    player.laserMs = LASER_DURATION_MS;
+
+    const enemy = createEnemy(match, "fighter", 0, "w1");
+    enemy.x = 640 + LASER_BEAM_HALF_WIDTH + FIGHTER_STATS.radius + 10;
+    enemy.y = 200;
+    const hpBefore = enemy.hp;
+    match.enemies.push(enemy);
+
+    resolveLaserBeam(match, player);
+    assert.equal(enemy.hp, hpBefore, "enemy outside beam should take no damage");
+  });
+
+  it("beam pierces through multiple enemies (all take damage in same tick)", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 640;
+    player.y = 600;
+    player.laserMs = LASER_DURATION_MS;
+
+    const enemy1 = createEnemy(match, "fighter", 0, "w1");
+    enemy1.x = 640;
+    enemy1.y = 200;
+    const hp1Before = enemy1.hp;
+
+    const enemy2 = createEnemy(match, "fighter", 0, "w2");
+    enemy2.x = 640;
+    enemy2.y = 350;
+    const hp2Before = enemy2.hp;
+
+    match.enemies.push(enemy1, enemy2);
+    resolveLaserBeam(match, player);
+
+    assert.equal(enemy1.hp, hp1Before - LASER_DAMAGE_PER_TICK, "first enemy should take damage");
+    assert.equal(enemy2.hp, hp2Before - LASER_DAMAGE_PER_TICK, "second enemy should take damage");
+  });
+
+  it("no bullets spawned while laserMs > 0", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.laserMs = LASER_DURATION_MS;
+    const inputs = new Map<string, InputState>();
+    inputs.set("p1", { up: false, down: false, left: false, right: false, shoot: true });
+
+    updateMatch(match, inputs, 33);
+    assert.equal(match.bullets.length, 0, "no bullets should be spawned during laser mode");
+  });
+
+  it("normal fire resumes after laserMs expires", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.laserMs = LASER_DURATION_MS;
+    const inputs = new Map<string, InputState>();
+    inputs.set("p1", { up: false, down: false, left: false, right: false, shoot: true });
+
+    // While laser is active, no bullets should spawn
+    updateMatch(match, inputs, 33);
+    assert.equal(match.bullets.length, 0, "no bullets during laser mode");
+
+    // Expire the laser
+    player.laserMs = 0;
+    player.shotCooldownMs = 0;
+
+    // Now bullets should spawn
+    updateMatch(match, inputs, 33);
+    assert.ok(match.bullets.length > 0, "bullets should be spawned after laser expires");
   });
 });

@@ -634,20 +634,36 @@ class GameScene extends Phaser.Scene {
       this.bulletLayer.fillStyle(bullet.owner === "player" ? 0xbdfcc9 : 0xffd0d6, bullet.owner === "player" ? 0.88 : 0.82);
       this.bulletLayer.fillCircle(bullet.x, bullet.y, bullet.radius);
     }
+
+    for (const player of this.snapshot?.players ?? []) {
+      if (player.laserActive && player.alive) {
+        const beamX = player.x;
+        const beamBottom = player.y - 18;
+        const beamWidth = 24;
+        this.bulletLayer.fillStyle(0xff6a3d, 0.35);
+        this.bulletLayer.fillRect(beamX - beamWidth / 2, 0, beamWidth, beamBottom);
+        this.bulletLayer.fillStyle(0xffaa66, 0.7);
+        this.bulletLayer.fillRect(beamX - 4, 0, 8, beamBottom);
+        this.bulletLayer.fillStyle(0xffffff, 0.9);
+        this.bulletLayer.fillRect(beamX - 1, 0, 2, beamBottom);
+      }
+    }
   }
 
   private static readonly PICKUP_LABEL: Record<string, string> = {
     weapon: "W",
     bomb: "B",
     shield: "S",
-    rapid_fire: "R"
+    rapid_fire: "R",
+    laser: "L"
   };
 
   private static readonly PICKUP_COLOR: Record<string, string> = {
     weapon: "#ffe38f",
     bomb: "#8fffcb",
     shield: "#62b8ff",
-    rapid_fire: "#ff88ff"
+    rapid_fire: "#ff88ff",
+    laser: "#ff6a3d"
   };
 
   private syncPickups() {
@@ -692,6 +708,9 @@ class GameScene extends Phaser.Scene {
     }
     if (self.rapidFireActive) {
       badges.push("[RAPID FIRE]");
+    }
+    if (self.laserActive) {
+      badges.push("[LASER]");
     }
     this.effectHud.setText(badges.join("  "));
   }

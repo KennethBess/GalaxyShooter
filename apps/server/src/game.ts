@@ -11,7 +11,7 @@ import type {
 import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FIRE_INTERVAL_MS, PLAYER_SPEED, TEAM_LIVES_BASE } from "@shared/index";
 import {
   createEnemy, fireEnemy, hitPlayer, killEnemy,
-  resolveCollisions, spawnPlayerVolley
+  resolveCollisions, resolveLaserBeam, spawnPlayerVolley
 } from "./combat.js";
 import {
   BOMB_DAMAGE_BOSS, BOMB_DAMAGE_NORMAL,
@@ -88,6 +88,7 @@ const updatePlayers = (match: MatchRuntime, inputs: Map<string, InputState>, del
     player.shotCooldownMs = Math.max(0, player.shotCooldownMs - deltaMs);
     player.shieldMs = Math.max(0, player.shieldMs - deltaMs);
     player.rapidFireMs = Math.max(0, player.rapidFireMs - deltaMs);
+    player.laserMs = Math.max(0, player.laserMs - deltaMs);
 
     if (!player.alive) {
       continue;
@@ -113,7 +114,7 @@ const updatePlayers = (match: MatchRuntime, inputs: Map<string, InputState>, del
       }
     }
 
-    if (input.shoot && player.shotCooldownMs === 0) {
+    if (input.shoot && player.shotCooldownMs === 0 && player.laserMs === 0) {
       spawnPlayerVolley(match, player);
       player.shotCooldownMs = player.rapidFireMs > 0 ? PLAYER_FIRE_INTERVAL_MS / 2 : PLAYER_FIRE_INTERVAL_MS;
     }
@@ -197,7 +198,8 @@ export const createMatch = (roomCode: string, mode: GameMode, players: PlayerSlo
       invulnerableMs: 0,
       pendingBomb: false,
       shieldMs: 0,
-      rapidFireMs: 0
+      rapidFireMs: 0,
+      laserMs: 0
     });
   });
 
@@ -244,6 +246,14 @@ export const updateMatch = (match: MatchRuntime, inputs: Map<string, InputState>
     updateBullets(match, deltaMs);
     updatePickups(match, deltaMs);
     resolveCollisions(match);
+    for (const player of match.players.values()) {
+      if (player.alive && player.laserMs > 0) {
+        const input = inputs.get(player.playerId);
+        if (input?.shoot) {
+          resolveLaserBeam(match, player);
+        }
+      }
+    }
     if (match.stageTransitionPending) {
       match.enemies = [];
       match.bullets = [];
@@ -276,7 +286,8 @@ export const updateMatch = (match: MatchRuntime, inputs: Map<string, InputState>
       weaponLevel: player.weaponLevel,
       score: player.score,
       shieldActive: player.shieldMs > 0,
-      rapidFireActive: player.rapidFireMs > 0
+      rapidFireActive: player.rapidFireMs > 0,
+      laserActive: player.laserMs > 0
     });
   }
 
