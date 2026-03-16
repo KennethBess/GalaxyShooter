@@ -18,6 +18,7 @@ import {
   BOSS_INITIAL_VY,
   BOSS_RADIUS,
   BOSS_SPAWN_Y,
+  ENEMY_BULLET_RADIUS_LARGE,
   ENEMY_SPAWN_Y,
   FIGHTER_STATS,
   HEAVY_STATS,
@@ -460,5 +461,110 @@ describe("Nebula Run full boss fight simulation", () => {
       updateMatch(match, inputs, deltaMs);
     }
     assert.ok(match.tick > 900, "Game should continue running after stage transition");
+  });
+});
+
+describe("enemy swept collision detection", () => {
+  it("enemy bullet edge-graze registers a hit via swept detection", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 200;
+    player.y = 500;
+
+    // Enemy bullet travels from (175, 470) to (175, 530) — vertical path.
+    // Neither endpoint is within hit radius of player center (200, 500),
+    // but the closest point on the segment is (175, 500), which is 25 px away.
+    // Combined radius = ENEMY_BULLET_RADIUS_SMALL (6) + PLAYER_HITBOX_RADIUS (16) = 22.
+    // 25 > 22, so use ENEMY_BULLET_RADIUS_LARGE (8) + PLAYER_HITBOX_RADIUS (16) = 24.
+    // 25 > 24, still too far. Adjust: place bullet path at (185, 470)→(185, 530).
+    // Closest point: (185, 500), distance = 15. 15 < 24. Should hit.
+    const startX = 185;
+    const startY = 470;
+    const endX = 185;
+    const endY = 530;
+
+    // Verify neither endpoint alone would trigger a hit
+    const hitRadiusSq = (ENEMY_BULLET_RADIUS_LARGE + PLAYER_HITBOX_RADIUS) ** 2;
+    assert.ok((startX - player.x) ** 2 + (startY - player.y) ** 2 > hitRadiusSq, "start should be outside hit radius");
+    assert.ok((endX - player.x) ** 2 + (endY - player.y) ** 2 > hitRadiusSq, "end should be outside hit radius");
+
+    match.bullets.push({
+      id: "eb-edge",
+      owner: "enemy",
+      x: endX,
+      y: endY,
+      prevX: startX,
+      prevY: startY,
+      vx: 0,
+      vy: 250,
+      radius: ENEMY_BULLET_RADIUS_LARGE,
+      damage: 1,
+    });
+
+    resolveCollisions(match);
+    assert.equal(match.bullets.length, 0, "enemy bullet should be consumed on swept hit");
+    assert.equal(player.alive, false, "player should be hit by edge-grazing enemy bullet");
+  });
+
+  it("enemy bullet clearly missing player does not register", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 200;
+    player.y = 500;
+
+    // Bullet path at x=300 — well outside combined radius of 24
+    match.bullets.push({
+      id: "eb-miss",
+      owner: "enemy",
+      x: 300,
+      y: 530,
+      prevX: 300,
+      prevY: 470,
+      vx: 0,
+      vy: 250,
+      radius: ENEMY_BULLET_RADIUS_LARGE,
+      damage: 1,
+    });
+
+    resolveCollisions(match);
+    assert.equal(match.bullets.length, 1, "bullet should not be consumed");
+    assert.equal(player.alive, true, "player should not be hit");
+  });
+
+  it("kamikaze edge-graze body collision registers via swept detection", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.x = 200;
+    player.y = 500;
+
+    const enemy = createEnemy(match, "kamikaze", 0, "w1");
+    // Kamikaze sweeps past the player — prevPos before, pos after
+    // Combined radius = KAMIKAZE_STATS.radius (18) + PLAYER_HITBOX_RADIUS (16) = 34
+    // Place at x=175, sweeping from y=470 to y=530. Closest point (175, 500), dist=25 < 34. Hit.
+    enemy.x = 175;
+    enemy.y = 530;
+    enemy.prevX = 175;
+    enemy.prevY = 470;
+
+    // Verify neither endpoint alone would trigger (point dist > 34)
+    const hitRadiusSq = (KAMIKAZE_STATS.radius + PLAYER_HITBOX_RADIUS) ** 2;
+    assert.ok((enemy.prevX - player.x) ** 2 + (enemy.prevY - player.y) ** 2 > hitRadiusSq, "prev pos should be outside");
+    assert.ok((enemy.x - player.x) ** 2 + (enemy.y - player.y) ** 2 > hitRadiusSq, "current pos should be outside");
+
+    match.enemies.push(enemy);
+    resolveCollisions(match);
+    assert.equal(match.enemies.length, 0, "kamikaze should be killed on swept body collision");
+    assert.equal(player.alive, false, "player should be hit by edge-grazing kamikaze");
+  });
+
+  it("enemy prevX/prevY initialized correctly at spawn", () => {
+    const match = createMockMatch();
+    const fighter = createEnemy(match, "fighter", 0, "w1");
+    assert.equal(fighter.prevX, fighter.x);
+    assert.equal(fighter.prevY, fighter.y);
+
+    const boss = createEnemy(match, "fighter", 0, "w2", true);
+    assert.equal(boss.prevX, boss.x);
+    assert.equal(boss.prevY, boss.y);
   });
 });

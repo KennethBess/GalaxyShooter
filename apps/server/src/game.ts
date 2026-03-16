@@ -122,6 +122,8 @@ const updatePlayers = (match: MatchRuntime, inputs: Map<string, InputState>, del
 
 const updateEnemies = (match: MatchRuntime, deltaMs: number) => {
   for (const enemy of match.enemies) {
+    enemy.prevX = enemy.x;
+    enemy.prevY = enemy.y;
     if (enemy.boss) {
       enemy.entered = enemy.entered || enemy.y >= BOSS_ENTER_Y;
       enemy.y = enemy.entered ? enemy.y : enemy.y + (enemy.vy * deltaMs) / 1000;

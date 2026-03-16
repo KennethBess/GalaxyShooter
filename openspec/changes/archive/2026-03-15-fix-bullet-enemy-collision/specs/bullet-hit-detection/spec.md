@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: Player bullet collision uses swept segment detection
 The server SHALL detect bullet-vs-enemy collisions by computing the minimum distance from the bullet's swept path segment (previous position to current position) to the enemy center, rather than checking the bullet's current position alone. A hit SHALL be registered when this minimum distance is less than or equal to `bullet.radius + enemy.radius`. The same swept segment technique SHALL also be used for enemy bullet-vs-player collisions using the enemy bullet's swept path segment and the player center.
 
@@ -16,25 +18,3 @@ The server SHALL detect bullet-vs-enemy collisions by computing the minimum dist
 #### Scenario: Enemy bullet edge-graze registers via swept detection
 - **WHEN** an enemy bullet's path segment passes within `bullet.radius + PLAYER_HITBOX_RADIUS` of a player center
 - **THEN** the hit is registered and the bullet is consumed
-
----
-
-### Requirement: RuntimeBullet tracks previous tick position
-The server SHALL store `prevX` and `prevY` on each `RuntimeBullet`, updated at the start of each physics tick to the bullet's position before velocity integration. At bullet spawn, `prevX` and `prevY` SHALL equal the bullet's initial `x` and `y`.
-
-#### Scenario: prevX/prevY initialized at spawn
-- **WHEN** a new bullet is created (player volley or enemy fire)
-- **THEN** `prevX` equals the bullet's initial `x` and `prevY` equals the bullet's initial `y`
-
-#### Scenario: prevX/prevY updated before position integration
-- **WHEN** the physics tick runs `updateBullets`
-- **THEN** each bullet's `prevX`/`prevY` is set to its `x`/`y` before the velocity step is applied
-
----
-
-### Requirement: Player bullet radius is 8
-The `PLAYER_BULLET_RADIUS` constant SHALL be `8` (changed from `5`) to better match the visual size of the rendered bullet circle and reduce perceived near-miss discrepancies.
-
-#### Scenario: Bullet radius constant is 8
-- **WHEN** `PLAYER_BULLET_RADIUS` is read from `gameTypes.ts`
-- **THEN** its value is `8`

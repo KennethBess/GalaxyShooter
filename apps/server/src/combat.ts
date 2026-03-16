@@ -25,6 +25,8 @@ export const createEnemy = (match: MatchRuntime, kind: EnemyKind, lane: number, 
       kind: "boss",
       x: GAME_WIDTH / 2,
       y: BOSS_SPAWN_Y,
+      prevX: GAME_WIDTH / 2,
+      prevY: BOSS_SPAWN_Y,
       vx: BOSS_INITIAL_VX,
       vy: BOSS_INITIAL_VY,
       hp: Math.round(BOSS_HP_BASE * match.difficultyScale),
@@ -45,11 +47,14 @@ export const createEnemy = (match: MatchRuntime, kind: EnemyKind, lane: number, 
         ? HEAVY_STATS
         : KAMIKAZE_STATS;
 
+  const spawnX = LANES[lane % LANES.length] ?? GAME_WIDTH / 2;
   return {
     id: nextId(match, "enemy"),
     kind,
-    x: LANES[lane % LANES.length] ?? GAME_WIDTH / 2,
+    x: spawnX,
     y: ENEMY_SPAWN_Y,
+    prevX: spawnX,
+    prevY: ENEMY_SPAWN_Y,
     vx: kind === "kamikaze" ? 0 : ((lane % 2 === 0 ? 1 : -1) * ENEMY_DRIFT_SPEED),
     vy: base.speed,
     hp: Math.round(base.hp * match.difficultyScale),
@@ -235,7 +240,7 @@ export const resolveCollisions = (match: MatchRuntime) => {
       if (!player.alive || player.invulnerableMs > 0) {
         continue;
       }
-      if (distanceSq(bullet.x, bullet.y, player.x, player.y) <= (bullet.radius + PLAYER_HITBOX_RADIUS) ** 2) {
+      if (segmentPointDistanceSq(bullet.prevX, bullet.prevY, bullet.x, bullet.y, player.x, player.y) <= (bullet.radius + PLAYER_HITBOX_RADIUS) ** 2) {
         hitPlayer(match, player);
         hitPlayerAny = true;
         break;
@@ -252,7 +257,7 @@ export const resolveCollisions = (match: MatchRuntime) => {
       if (!player.alive || player.invulnerableMs > 0) {
         continue;
       }
-      if (distanceSq(enemy.x, enemy.y, player.x, player.y) <= (enemy.radius + PLAYER_HITBOX_RADIUS) ** 2) {
+      if (segmentPointDistanceSq(enemy.prevX, enemy.prevY, enemy.x, enemy.y, player.x, player.y) <= (enemy.radius + PLAYER_HITBOX_RADIUS) ** 2) {
         enemy.hp = 0;
         killEnemy(match, enemy.id);
         hitPlayer(match, player);

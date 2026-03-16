@@ -41,6 +41,8 @@ export interface RuntimeEnemy {
   kind: EnemyKind;
   x: number;
   y: number;
+  prevX: number;
+  prevY: number;
   vx: number;
   vy: number;
   hp: number;

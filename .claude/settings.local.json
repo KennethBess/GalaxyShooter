@@ -46,7 +46,8 @@
       "Bash(openspec complete:*)",
       "Bash(openspec --help)",
       "Bash(npx biome:*)",
-      "Bash(node --import tsx --test test/leaderboard.test.ts)"
+      "Bash(node --import tsx --test test/leaderboard.test.ts)",
+      "Bash(node --import tsx --test test/combat.test.ts)"
     ],
     "additionalDirectories": [
       "c:\\Dev\\Codex\\Test01\\docs\\superpowers",
