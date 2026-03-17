@@ -264,8 +264,11 @@ class GameScene extends Phaser.Scene {
     down: Phaser.Input.Keyboard.Key;
     left: Phaser.Input.Keyboard.Key;
     right: Phaser.Input.Keyboard.Key;
+    arrowUp: Phaser.Input.Keyboard.Key;
+    arrowDown: Phaser.Input.Keyboard.Key;
+    arrowLeft: Phaser.Input.Keyboard.Key;
+    arrowRight: Phaser.Input.Keyboard.Key;
     shoot: Phaser.Input.Keyboard.Key;
-    altShoot: Phaser.Input.Keyboard.Key;
     bomb: Phaser.Input.Keyboard.Key;
   };
 
@@ -298,8 +301,11 @@ class GameScene extends Phaser.Scene {
       down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
+      arrowUp: Phaser.Input.Keyboard.KeyCodes.UP,
+      arrowDown: Phaser.Input.Keyboard.KeyCodes.DOWN,
+      arrowLeft: Phaser.Input.Keyboard.KeyCodes.LEFT,
+      arrowRight: Phaser.Input.Keyboard.KeyCodes.RIGHT,
       shoot: Phaser.Input.Keyboard.KeyCodes.SPACE,
-      altShoot: Phaser.Input.Keyboard.KeyCodes.UP,
       bomb: Phaser.Input.Keyboard.KeyCodes.SHIFT
     }, false) as GameScene["inputKeys"];
 
@@ -326,11 +332,11 @@ class GameScene extends Phaser.Scene {
     }
 
     const next: InputState = {
-      up: this.inputKeys.up.isDown,
-      down: this.inputKeys.down.isDown,
-      left: this.inputKeys.left.isDown,
-      right: this.inputKeys.right.isDown,
-      shoot: this.inputKeys.shoot.isDown || this.inputKeys.altShoot.isDown
+      up: this.inputKeys.up.isDown || this.inputKeys.arrowUp.isDown,
+      down: this.inputKeys.down.isDown || this.inputKeys.arrowDown.isDown,
+      left: this.inputKeys.left.isDown || this.inputKeys.arrowLeft.isDown,
+      right: this.inputKeys.right.isDown || this.inputKeys.arrowRight.isDown,
+      shoot: this.inputKeys.shoot.isDown
     };
 
     const changed = inputChanged(next, this.inputState);
@@ -340,10 +346,10 @@ class GameScene extends Phaser.Scene {
     if (changed) {
       this.inputState = next;
       this.onInput(next);
-      this.inputRepeatMs = activeInput ? 90 : 0;
+      this.inputRepeatMs = activeInput ? 33 : 0;
     } else if (activeInput && this.inputRepeatMs === 0) {
       this.onInput(next);
-      this.inputRepeatMs = 90;
+      this.inputRepeatMs = 33;
     }
 
     this.predictedShotCooldownMs = Math.max(0, this.predictedShotCooldownMs - delta);
@@ -570,8 +576,8 @@ class GameScene extends Phaser.Scene {
           if (drift > DRIFT_SNAP_THRESHOLD) {
             sprite.setPosition(target.x, target.y);
           } else if (drift > DRIFT_LERP_THRESHOLD) {
-            sprite.x = Phaser.Math.Linear(sprite.x, target.x, 0.12);
-            sprite.y = Phaser.Math.Linear(sprite.y, target.y, 0.12);
+            sprite.x = Phaser.Math.Linear(sprite.x, target.x, 0.25);
+            sprite.y = Phaser.Math.Linear(sprite.y, target.y, 0.25);
           }
         }
         continue;

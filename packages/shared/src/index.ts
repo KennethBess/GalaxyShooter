@@ -19,7 +19,7 @@ export const PLAYER_CLAMP_Y_MAX_OFFSET = 40;
 
 // Client interpolation constants
 export const DRIFT_SNAP_THRESHOLD = 220;
-export const DRIFT_LERP_THRESHOLD = 96;
+export const DRIFT_LERP_THRESHOLD = 40;
 export const LERP_SPEED_FACTOR = 18;
 export const LERP_FACTOR_MIN = 0.18;
 export const LERP_FACTOR_MAX = 0.42;
