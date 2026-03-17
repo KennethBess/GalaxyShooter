@@ -1,5 +1,5 @@
 import type { InputState, SnapshotState } from "@shared/index";
-import { DRIFT_LERP_THRESHOLD, DRIFT_SNAP_THRESHOLD, type EnemyKind, GAME_HEIGHT, GAME_WIDTH, LERP_FACTOR_MAX, LERP_FACTOR_MIN, LERP_SPEED_FACTOR, PLAYER_CLAMP_X_MAX_OFFSET, PLAYER_CLAMP_X_MIN, PLAYER_CLAMP_Y_MAX_OFFSET, PLAYER_CLAMP_Y_MIN, PLAYER_SPEED, SHIP_OPTIONS, type ShipId } from "@shared/index";
+import { DRIFT_LERP_THRESHOLD, DRIFT_SNAP_THRESHOLD, type EnemyKind, GAME_HEIGHT, GAME_WIDTH, LERP_FACTOR_MAX, LERP_FACTOR_MIN, LERP_SPEED_FACTOR, PLAYER_CLAMP_X_MAX_OFFSET, PLAYER_CLAMP_X_MIN, PLAYER_CLAMP_Y_MAX_OFFSET, PLAYER_CLAMP_Y_MIN, PLAYER_MAX_HP, PLAYER_SPEED, SHIP_OPTIONS, type ShipId } from "@shared/index";
 import Phaser from "phaser";
 
 interface GameController {
@@ -253,6 +253,12 @@ class GameScene extends Phaser.Scene {
   private battleMusic?: Phaser.Sound.BaseSound;
   private musicVolume = 0.5;
   private musicMuted = false;
+  private healthBar?: Phaser.GameObjects.Graphics;
+  private shieldBar?: Phaser.GameObjects.Graphics;
+  private prevHp = 0;
+  private prevAlive = false;
+  private shieldRemainingMs = 0;
+  private lastSnapshotShieldMs = 0;
   private inputKeys?: {
     up: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
@@ -299,6 +305,11 @@ class GameScene extends Phaser.Scene {
 
     this.inputKeys?.bomb.on("down", () => this.onBomb());
 
+    this.healthBar = this.add.graphics();
+    this.healthBar.setDepth(101);
+    this.shieldBar = this.add.graphics();
+    this.shieldBar.setDepth(101);
+
     this.sceneReady = true;
     if (this.pendingTrack) {
       this.startMusic(this.pendingTrack);
@@ -340,6 +351,8 @@ class GameScene extends Phaser.Scene {
     this.spawnPredictedShots();
     this.updatePredictedBullets(delta);
     this.interpolateSprites(delta);
+    this.shieldRemainingMs = Math.max(0, this.shieldRemainingMs - delta);
+    this.drawShieldBar();
 
     if (this.snapshot && this.selfPlayerId && this.lastSnapshotMs > 0) {
       const staleDuration = performance.now() - this.lastSnapshotMs;
@@ -367,6 +380,83 @@ class GameScene extends Phaser.Scene {
     this.syncPickups();
     this.hud?.setText(`${snapshot.stageLabel}   Score ${snapshot.score}   Team Lives ${snapshot.teamLives}`);
     this.syncEffectHud(snapshot);
+    this.syncHealthBar(snapshot);
+  }
+
+  private syncHealthBar(snapshot: SnapshotState) {
+    const self = snapshot.players.find((player) => player.playerId === this.selfPlayerId);
+    if (!self || !this.healthBar) {
+      this.healthBar?.clear();
+      this.shieldBar?.clear();
+      return;
+    }
+
+    const wasAlive = this.prevAlive;
+    const nowAlive = self.alive;
+    const hpChanged = self.hp < this.prevHp && !(wasAlive === false && nowAlive === true);
+    this.prevHp = self.hp;
+    this.prevAlive = self.alive;
+
+    if (hpChanged && this.healthBar) {
+      this.tweens.add({
+        targets: this.healthBar,
+        alpha: { from: 0.3, to: 1 },
+        duration: 200,
+        ease: "Sine.easeOut"
+      });
+    }
+
+    this.drawHealthBar(self.hp, self.maxHp);
+
+    this.lastSnapshotShieldMs = self.shieldRemainingMs;
+    this.shieldRemainingMs = self.shieldRemainingMs;
+    this.drawShieldBar();
+  }
+
+  private drawHealthBar(hp: number, maxHp: number) {
+    if (!this.healthBar) return;
+    this.healthBar.clear();
+
+    const barX = 20;
+    const barY = 80;
+    const barWidth = 200;
+    const barHeight = 16;
+
+    this.healthBar.fillStyle(0x1a1a2e, 0.8);
+    this.healthBar.fillRect(barX, barY, barWidth, barHeight);
+
+    const ratio = Math.max(0, hp) / Math.max(1, maxHp);
+    const fillWidth = ratio * barWidth;
+
+    const color = ratio > 0.6 ? 0x44ff44 : ratio > 0.3 ? 0xffdd44 : 0xff4444;
+    this.healthBar.fillStyle(color, 1);
+    this.healthBar.fillRect(barX, barY, fillWidth, barHeight);
+
+    this.healthBar.lineStyle(1, 0x668899, 0.6);
+    this.healthBar.strokeRect(barX, barY, barWidth, barHeight);
+  }
+
+  private drawShieldBar() {
+    if (!this.shieldBar) return;
+    this.shieldBar.clear();
+
+    if (this.shieldRemainingMs <= 0) return;
+
+    const barX = 20;
+    const barY = 100;
+    const barWidth = 200;
+    const barHeight = 12;
+
+    this.shieldBar.fillStyle(0x1a1a2e, 0.8);
+    this.shieldBar.fillRect(barX, barY, barWidth, barHeight);
+
+    const ratio = Math.min(1, this.shieldRemainingMs / 5000);
+    const fillWidth = ratio * barWidth;
+    this.shieldBar.fillStyle(0x62b8ff, 0.9);
+    this.shieldBar.fillRect(barX, barY, fillWidth, barHeight);
+
+    this.shieldBar.lineStyle(1, 0x668899, 0.6);
+    this.shieldBar.strokeRect(barX, barY, barWidth, barHeight);
   }
 
   reset() {
@@ -376,6 +466,12 @@ class GameScene extends Phaser.Scene {
     this.clearObjects();
     this.hud?.setText("Waiting for room to start");
     this.effectHud?.setText("");
+    this.healthBar?.clear();
+    this.shieldBar?.clear();
+    this.prevHp = 0;
+    this.prevAlive = false;
+    this.shieldRemainingMs = 0;
+    this.lastSnapshotShieldMs = 0;
   }
 
   startMusic(track: "lobby" | "battle") {

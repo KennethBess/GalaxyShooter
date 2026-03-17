@@ -8,7 +8,7 @@ import type {
   SnapshotState,
   StageDef
 } from "@shared/index";
-import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FIRE_INTERVAL_MS, PLAYER_SPEED, TEAM_LIVES_BASE } from "@shared/index";
+import { GAME_HEIGHT, GAME_WIDTH, PLAYER_FIRE_INTERVAL_MS, PLAYER_MAX_HP, PLAYER_SPEED, TEAM_LIVES_BASE } from "@shared/index";
 import {
   createEnemy, fireEnemy, hitPlayer, killEnemy,
   resolveCollisions, resolveLaserBeam, spawnPlayerVolley
@@ -78,6 +78,7 @@ const updatePlayers = (match: MatchRuntime, inputs: Map<string, InputState>, del
       player.respawnMs -= deltaMs;
       if (player.respawnMs <= 0) {
         player.alive = true;
+        player.hp = PLAYER_MAX_HP;
         player.invulnerableMs = INVULNERABLE_AFTER_RESPAWN_MS;
         player.x = GAME_WIDTH / 2;
         player.y = GAME_HEIGHT - PLAYER_SPAWN_Y_OFFSET;
@@ -199,7 +200,9 @@ export const createMatch = (roomCode: string, mode: GameMode, players: PlayerSlo
       pendingBomb: false,
       shieldMs: 0,
       rapidFireMs: 0,
-      laserMs: 0
+      laserMs: 0,
+      hp: PLAYER_MAX_HP,
+      maxHp: PLAYER_MAX_HP
     });
   });
 
@@ -287,7 +290,10 @@ export const updateMatch = (match: MatchRuntime, inputs: Map<string, InputState>
       score: player.score,
       shieldActive: player.shieldMs > 0,
       rapidFireActive: player.rapidFireMs > 0,
-      laserActive: player.laserMs > 0
+      laserActive: player.laserMs > 0,
+      hp: player.hp,
+      maxHp: player.maxHp,
+      shieldRemainingMs: player.shieldMs
     });
   }
 

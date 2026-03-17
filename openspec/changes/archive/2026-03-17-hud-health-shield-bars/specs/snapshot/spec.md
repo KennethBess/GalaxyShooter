@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: SnapshotPlayer carries per-player active effect state
 Each entry in `SnapshotState.players` SHALL include `shieldActive: boolean`, `rapidFireActive: boolean`, `laserActive: boolean`, `hp: number`, `maxHp: number`, and `shieldRemainingMs: number` fields. The effect booleans indicate whether the respective timed power-up is currently active. The `hp` and `maxHp` fields reflect the player's current and maximum health. The `shieldRemainingMs` field contains the milliseconds of shield duration remaining (0 when inactive).
 

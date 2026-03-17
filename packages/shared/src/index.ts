@@ -6,6 +6,8 @@ export const PLAYER_SPEED = 420;
 export const PLAYER_FIRE_INTERVAL_MS = 170;
 export const PLAYER_RESPAWN_MS = 1600;
 export const TEAM_LIVES_BASE = 6;
+export const PLAYER_MAX_HP = 3;
+export const DAMAGE_INVULN_MS = 1000;
 export const RECONNECT_GRACE_MS = 15000;
 export const ROOM_CODE_LENGTH = 5;
 
@@ -103,6 +105,9 @@ export interface SnapshotPlayer {
   shieldActive: boolean;
   rapidFireActive: boolean;
   laserActive: boolean;
+  hp: number;
+  maxHp: number;
+  shieldRemainingMs: number;
 }
 
 export interface SnapshotEnemy {
