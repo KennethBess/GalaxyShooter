@@ -56,3 +56,6 @@ export const negotiateRealtime = (payload: RealtimeNegotiationRequest) =>
 
 export const fetchLeaderboard = (mode: GameMode) =>
   request<LeaderboardEntry[]>(`/api/leaderboard?mode=${mode}`);
+
+export const resetLeaderboard = (mode: string) =>
+  request<{ cleared: string }>(`/api/leaderboard?mode=${mode}`, { method: "DELETE" });

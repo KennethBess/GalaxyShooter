@@ -1,6 +1,6 @@
 import { DEFAULT_SHIP_ID, type GameMode, type LeaderboardEntry, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
 import QRCode from "qrcode";
-import { createRoom, fetchLeaderboard, joinRoom, listOpenRooms } from "./api";
+import { createRoom, fetchLeaderboard, joinRoom, listOpenRooms, resetLeaderboard } from "./api";
 import { RoomConnection } from "./network";
 import { createGame } from "./phaser/game";
 import { clearSession, loadScores, loadSession, loadSettings, type StoredSession, saveScore, saveSession, saveSettings } from "./storage";
@@ -295,6 +295,7 @@ export class App {
               <section class="lb-body">
                 ${this.renderLeaderboardBody()}
               </section>
+              ${new URLSearchParams(window.location.search).has("admin") ? '<button id="lb-reset" class="secondary-button lb-reset-btn">Reset Scores</button>' : ""}
               <button id="back-from-scores" class="secondary-button lb-back">Back</button>
             </div>
           </main>
@@ -644,6 +645,19 @@ export class App {
     });
     this.root.querySelector("#lb-retry")?.addEventListener("click", () => {
       void this.loadLeaderboard(this.state.leaderboardMode);
+    }, { signal });
+    this.root.querySelector("#lb-reset")?.addEventListener("click", () => {
+      if (!confirm(`Reset all ${this.state.leaderboardMode} scores? This cannot be undone.`)) return;
+      void (async () => {
+        try {
+          await resetLeaderboard(this.state.leaderboardMode);
+          void this.loadLeaderboard(this.state.leaderboardMode);
+        } catch (error) {
+          this.state.leaderboardError = error instanceof Error ? error.message : "Reset failed";
+          this.state.leaderboardEntries = [];
+          this.render();
+        }
+      })();
     }, { signal });
     this.root.querySelector("#back-lobby")?.addEventListener("click", () => this.backToLobby(), { signal });
     this.root.querySelector("#leave-room")?.addEventListener("click", () => this.leaveRoom(), { signal });

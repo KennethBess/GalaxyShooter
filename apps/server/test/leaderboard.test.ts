@@ -7,7 +7,7 @@ import { InMemoryRoomMessageBus } from "../src/roomMessageBus.js";
 import { InMemoryRoomRepository } from "../src/roomRepository.js";
 import { RoomService } from "../src/roomService.js";
 import { InMemoryRoomRuntimeRegistry } from "../src/runtimeRegistry.js";
-import { parseLeaderboardMode } from "../src/validation.js";
+import { parseLeaderboardMode, parseResetMode } from "../src/validation.js";
 import { FakeSocket, parseMessages } from "./helpers.js";
 
 describe("InMemoryLeaderboardRepository", () => {
@@ -118,6 +118,59 @@ describe("InMemoryLeaderboardRepository", () => {
     const top5 = await repo.getTopScores("campaign", 5);
     assert.equal(top5.length, 5);
     assert.equal(top5[0]!.score, 1000);
+  });
+});
+
+describe("InMemoryLeaderboardRepository reset", () => {
+  it("resets a single mode", async () => {
+    const repo = new InMemoryLeaderboardRepository();
+    await repo.submit({ playerName: "A", score: 100, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
+    await repo.submit({ playerName: "B", score: 200, mode: "survival", stageReached: 2, durationMs: 2000, playerCount: 1 });
+
+    await repo.reset("campaign");
+
+    const campaign = await repo.getTopScores("campaign");
+    const survival = await repo.getTopScores("survival");
+    assert.equal(campaign.length, 0);
+    assert.equal(survival.length, 1);
+  });
+
+  it("resets all modes", async () => {
+    const repo = new InMemoryLeaderboardRepository();
+    await repo.submit({ playerName: "A", score: 100, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
+    await repo.submit({ playerName: "B", score: 200, mode: "survival", stageReached: 2, durationMs: 2000, playerCount: 1 });
+
+    await repo.reset("all");
+
+    const campaign = await repo.getTopScores("campaign");
+    const survival = await repo.getTopScores("survival");
+    assert.equal(campaign.length, 0);
+    assert.equal(survival.length, 0);
+  });
+
+  it("reset on empty board does not error", async () => {
+    const repo = new InMemoryLeaderboardRepository();
+    await repo.reset("campaign");
+    const entries = await repo.getTopScores("campaign");
+    assert.deepEqual(entries, []);
+  });
+});
+
+describe("parseResetMode", () => {
+  it("accepts 'campaign'", () => {
+    assert.equal(parseResetMode("campaign"), "campaign");
+  });
+
+  it("accepts 'survival'", () => {
+    assert.equal(parseResetMode("survival"), "survival");
+  });
+
+  it("accepts 'all'", () => {
+    assert.equal(parseResetMode("all"), "all");
+  });
+
+  it("rejects invalid mode", () => {
+    assert.throws(() => parseResetMode("endless"));
   });
 });
 

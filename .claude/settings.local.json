@@ -47,7 +47,20 @@
       "Bash(openspec --help)",
       "Bash(npx biome:*)",
       "Bash(node --import tsx --test test/leaderboard.test.ts)",
-      "Bash(node --import tsx --test test/combat.test.ts)"
+      "Bash(node --import tsx --test test/combat.test.ts)",
+      "Bash(azd env:*)",
+      "Bash(az acr:*)",
+      "Bash(az containerapp:*)",
+      "Bash(npx @azure/static-web-apps-cli deploy apps/client/dist --deployment-token 79353d7057f22146bc5d42037745d2ab18b7ac74b66604dca2516f904b4a7fab02-0fb752db-56c0-4c6d-9a82-ac85f814d5ff00307190f5c72703 --env production)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api-galaxy-shooter-wp01-sx2oiw.calmtree-8e947d69.westeurope.azurecontainerapps.io/api/leaderboard?mode=campaign\")",
+      "Bash(curl -s -i -H \"Origin: https://mango-stone-0f5c72703.2.azurestaticapps.net\" \"https://api-galaxy-shooter-wp01-sx2oiw.calmtree-8e947d69.westeurope.azurecontainerapps.io/api/leaderboard?mode=campaign\")",
+      "Bash(grep -o 'VITE_API_BASE.*\\\\|api-galaxy-shooter[^\"\"]*\\\\|localhost:3001' h:/Private/GalaxyShooter/apps/client/dist/assets/api-*.js)",
+      "Bash(curl -s -i -X OPTIONS -H \"Origin: https://mango-stone-0f5c72703.2.azurestaticapps.net\" -H \"Access-Control-Request-Method: GET\" -H \"Access-Control-Request-Headers: content-type\" \"https://api-galaxy-shooter-wp01-sx2oiw.calmtree-8e947d69.westeurope.azurecontainerapps.io/api/leaderboard?mode=campaign\")",
+      "Bash(curl -s -D - -H \"Origin: https://mango-stone-0f5c72703.2.azurestaticapps.net\" \"https://api-galaxy-shooter-wp01-sx2oiw.calmtree-8e947d69.westeurope.azurecontainerapps.io/api/leaderboard?mode=campaign\")",
+      "Bash(curl -s -D - -X OPTIONS -H \"Origin: https://mango-stone-0f5c72703.2.azurestaticapps.net\" -H \"Access-Control-Request-Method: GET\" -H \"Access-Control-Request-Headers: content-type\" \"https://api-galaxy-shooter-wp01-sx2oiw.calmtree-8e947d69.westeurope.azurecontainerapps.io/api/leaderboard?mode=campaign\")",
+      "Bash(curl -v -X OPTIONS -H \"Origin: https://mango-stone-0f5c72703.2.azurestaticapps.net\" -H \"Access-Control-Request-Method: GET\" -H \"Access-Control-Request-Headers: content-type\" \"https://api-galaxy-shooter-wp01-sx2oiw.calmtree-8e947d69.westeurope.azurecontainerapps.io/api/leaderboard?mode=campaign\")",
+      "Bash(curl -s -I \"https://mango-stone-0f5c72703.2.azurestaticapps.net/?admin=1\")",
+      "Bash(curl -s \"https://mango-stone-0f5c72703.2.azurestaticapps.net/assets/api-Dz1118W3.js\")"
     ],
     "additionalDirectories": [
       "c:\\Dev\\Codex\\Test01\\docs\\superpowers",

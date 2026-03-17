@@ -14,7 +14,7 @@ import { WebSocketServer } from "ws";
 import { gameMetrics, logError, logInfo, requestContext, trackRequest } from "./logger.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 import { normalizeRoomCode } from "./runtime.js";
-import { parseControllerNegotiateRequest, parseCreateRoomRequest, parseJoinRoomRequest, parseLeaderboardMode, parseRealtimeNegotiationRequest } from "./validation.js";
+import { parseControllerNegotiateRequest, parseCreateRoomRequest, parseJoinRoomRequest, parseLeaderboardMode, parseRealtimeNegotiationRequest, parseResetMode } from "./validation.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -270,6 +270,21 @@ app.get("/api/leaderboard", async (req, res) => {
   } catch (error) {
     logError("Leaderboard fetch failed", error);
     res.status(400).json({ message: error instanceof Error ? error.message : "Invalid mode parameter" });
+  }
+});
+
+app.delete("/api/leaderboard", async (req, res) => {
+  try {
+    const mode = parseResetMode(req.query.mode);
+    await leaderboard.reset(mode);
+    res.status(200).json({ cleared: mode });
+  } catch (error) {
+    if (error instanceof Error && error.name === "ZodError") {
+      res.status(400).json({ message: "Invalid mode parameter — use campaign, survival, or all" });
+      return;
+    }
+    logError("Leaderboard reset failed", error);
+    res.status(500).json({ message: error instanceof Error ? error.message : "Reset failed" });
   }
 });
 
