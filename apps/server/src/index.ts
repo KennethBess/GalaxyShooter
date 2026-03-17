@@ -14,12 +14,12 @@ import { WebSocketServer } from "ws";
 import { gameMetrics, logError, logInfo, requestContext, trackRequest } from "./logger.js";
 import { createRoomManagerFromEnv } from "./roomManagerFactory.js";
 import { normalizeRoomCode } from "./runtime.js";
-import { parseControllerNegotiateRequest, parseCreateRoomRequest, parseJoinRoomRequest, parseLeaderboardMode, parseRealtimeNegotiationRequest, parseResetMode } from "./validation.js";
+import { parseControllerNegotiateRequest, parseCreateRoomRequest, parseJoinRoomRequest, parseLeaderboardMode, parseRealtimeNegotiationRequest, parseRegisterRequest, parseResetMode } from "./validation.js";
 
 const app = express();
 app.set("trust proxy", 1);
 
-const { roomManager, leaderboard, realtime, dispose } = await createRoomManagerFromEnv();
+const { roomManager, leaderboard, players, realtime, dispose } = await createRoomManagerFromEnv();
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -285,6 +285,45 @@ app.delete("/api/leaderboard", async (req, res) => {
     }
     logError("Leaderboard reset failed", error);
     res.status(500).json({ message: error instanceof Error ? error.message : "Reset failed" });
+  }
+});
+
+app.post("/register", async (req, res) => {
+  try {
+    const body = parseRegisterRequest(req.body);
+    const result = await players.register(body.fullName, body.email, body.phone);
+    const record = await players.getById(result.id);
+    res.status(result.existing ? 200 : 201).json({
+      playerId: result.id,
+      fullName: record?.fullName ?? body.fullName,
+    });
+  } catch (error) {
+    logError("Registration failed", error);
+    const message = error instanceof Error ? error.message : "Registration failed";
+    res.status(400).json({ message });
+  }
+});
+
+app.get("/players/export", async (_req, res) => {
+  try {
+    const allPlayers = await players.getAll();
+    const csvEscape = (field: string) => {
+      if (field.includes(",") || field.includes('"') || field.includes("\n")) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+    const header = "Full Name,Email,Phone,Registered At";
+    const rows = allPlayers.map((p) =>
+      [csvEscape(p.fullName), csvEscape(p.email), csvEscape(p.phone ?? ""), p.registeredAt].join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", 'attachment; filename="players.csv"');
+    res.send(csv);
+  } catch (error) {
+    logError("Player export failed", error);
+    res.status(500).json({ message: error instanceof Error ? error.message : "Export failed" });
   }
 });
 

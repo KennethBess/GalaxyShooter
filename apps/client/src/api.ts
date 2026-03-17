@@ -6,6 +6,8 @@ import type {
   OpenRoomSummary,
   RealtimeNegotiationRequest,
   RealtimeNegotiationResponse,
+  RegisterRequest,
+  RegisterResponse,
   RoomSummary
 } from "@shared/index";
 
@@ -59,3 +61,9 @@ export const fetchLeaderboard = (mode: GameMode) =>
 
 export const resetLeaderboard = (mode: string) =>
   request<{ cleared: string }>(`/api/leaderboard?mode=${mode}`, { method: "DELETE" });
+
+export const registerPlayer = (payload: RegisterRequest) =>
+  request<RegisterResponse>("/register", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });

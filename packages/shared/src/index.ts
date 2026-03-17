@@ -211,6 +211,25 @@ export interface MatchConfig {
   teamLives: number;
 }
 
+export interface RegisterRequest {
+  fullName: string;
+  email: string;
+  phone?: string;
+}
+
+export interface RegisterResponse {
+  playerId: string;
+  fullName: string;
+}
+
+export interface PlayerRecord {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  registeredAt: string;
+}
+
 export interface CreateRoomRequest {
   playerName: string;
   shipId: ShipId;
