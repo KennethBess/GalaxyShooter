@@ -401,12 +401,17 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // Create or resume the incoming track
-    if (track === "lobby" && !this.lobbyMusic) {
-      this.lobbyMusic = this.sound.add("lobby", { loop: true, volume: 0 });
-    }
-    if (track === "battle" && !this.battleMusic) {
-      this.battleMusic = this.sound.add("battle", { loop: true, volume: 0 });
+    // Create or resume the incoming track (guard against missing audio cache)
+    try {
+      if (track === "lobby" && !this.lobbyMusic) {
+        this.lobbyMusic = this.sound.add("lobby", { loop: true, volume: 0 });
+      }
+      if (track === "battle" && !this.battleMusic) {
+        this.battleMusic = this.sound.add("battle", { loop: true, volume: 0 });
+      }
+    } catch {
+      // Audio not yet decoded or AudioContext blocked by browser autoplay policy
+      return;
     }
 
     const incoming = track === "lobby" ? this.lobbyMusic : this.battleMusic;
