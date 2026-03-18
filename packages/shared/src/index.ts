@@ -6,6 +6,8 @@ export const PLAYER_SPEED = 420;
 export const PLAYER_FIRE_INTERVAL_MS = 170;
 export const PLAYER_RESPAWN_MS = 1600;
 export const TEAM_LIVES_BASE = 6;
+export const PLAYER_MAX_HP = 3;
+export const DAMAGE_INVULN_MS = 1000;
 export const RECONNECT_GRACE_MS = 15000;
 export const ROOM_CODE_LENGTH = 5;
 
@@ -17,7 +19,7 @@ export const PLAYER_CLAMP_Y_MAX_OFFSET = 40;
 
 // Client interpolation constants
 export const DRIFT_SNAP_THRESHOLD = 220;
-export const DRIFT_LERP_THRESHOLD = 96;
+export const DRIFT_LERP_THRESHOLD = 40;
 export const LERP_SPEED_FACTOR = 18;
 export const LERP_FACTOR_MIN = 0.18;
 export const LERP_FACTOR_MAX = 0.42;
@@ -103,6 +105,9 @@ export interface SnapshotPlayer {
   shieldActive: boolean;
   rapidFireActive: boolean;
   laserActive: boolean;
+  hp: number;
+  maxHp: number;
+  shieldRemainingMs: number;
 }
 
 export interface SnapshotEnemy {
@@ -209,6 +214,25 @@ export interface MatchConfig {
   mode: GameMode;
   difficultyScale: number;
   teamLives: number;
+}
+
+export interface RegisterRequest {
+  fullName: string;
+  email: string;
+  phone?: string;
+}
+
+export interface RegisterResponse {
+  playerId: string;
+  fullName: string;
+}
+
+export interface PlayerRecord {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  registeredAt: string;
 }
 
 export interface CreateRoomRequest {

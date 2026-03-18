@@ -1,5 +1,5 @@
 import type { EnemyKind } from "@shared/index";
-import { GAME_WIDTH, PLAYER_RESPAWN_MS } from "@shared/index";
+import { DAMAGE_INVULN_MS, GAME_WIDTH, PLAYER_RESPAWN_MS } from "@shared/index";
 import {
   BOSS_FIRE_COOLDOWN_MS, BOSS_HP_BASE, BOSS_INITIAL_VX, BOSS_INITIAL_VY, BOSS_RADIUS, BOSS_SPAWN_Y,
   clamp, distanceSq, 
@@ -155,22 +155,29 @@ export const hitPlayer = (match: MatchRuntime, player: RuntimePlayer) => {
   if (!player.alive || player.invulnerableMs > 0 || player.shieldMs > 0) {
     return;
   }
-  player.alive = false;
-  player.respawnMs = match.teamLives > 0 ? PLAYER_RESPAWN_MS : 0;
-  queueEvent(match, "player_hit", `${player.name} took a hit`);
-  if (match.teamLives > 0) {
-    match.teamLives -= 1;
-  }
-  if (match.teamLives === 0 && [...match.players.values()].every((candidate) => !candidate.alive)) {
-    match.result = {
-      outcome: "defeat",
-      mode: match.mode,
-      score: [...match.players.values()].reduce((sum, current) => sum + current.score, 0),
-      stageReached: match.mode === "campaign" ? match.stageIndex + 1 : match.stageIndex,
-      durationMs: match.elapsedMs,
-      players: [...match.players.values()].map((current) => ({ playerId: current.playerId, name: current.name, shipId: current.shipId, score: current.score })),
-      leaderboardRank: null
-    };
+  player.hp -= 1;
+  if (player.hp <= 0) {
+    player.hp = 0;
+    player.alive = false;
+    player.respawnMs = match.teamLives > 0 ? PLAYER_RESPAWN_MS : 0;
+    queueEvent(match, "player_hit", `${player.name} was destroyed`);
+    if (match.teamLives > 0) {
+      match.teamLives -= 1;
+    }
+    if (match.teamLives === 0 && [...match.players.values()].every((candidate) => !candidate.alive)) {
+      match.result = {
+        outcome: "defeat",
+        mode: match.mode,
+        score: [...match.players.values()].reduce((sum, current) => sum + current.score, 0),
+        stageReached: match.mode === "campaign" ? match.stageIndex + 1 : match.stageIndex,
+        durationMs: match.elapsedMs,
+        players: [...match.players.values()].map((current) => ({ playerId: current.playerId, name: current.name, shipId: current.shipId, score: current.score })),
+        leaderboardRank: null
+      };
+    }
+  } else {
+    player.invulnerableMs = DAMAGE_INVULN_MS;
+    queueEvent(match, "player_hit", `${player.name} took a hit`);
   }
 };
 

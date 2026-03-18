@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { GAME_WIDTH } from "@shared/index";
+import { DAMAGE_INVULN_MS, GAME_WIDTH, PLAYER_MAX_HP } from "@shared/index";
 import {
   awardScore,
   createEnemy,
@@ -55,6 +55,8 @@ function createMockPlayer(overrides: Partial<RuntimePlayer> = {}): RuntimePlayer
     shieldMs: 0,
     rapidFireMs: 0,
     laserMs: 0,
+    hp: PLAYER_MAX_HP,
+    maxHp: PLAYER_MAX_HP,
     ...overrides,
   };
 }
@@ -191,10 +193,22 @@ describe("spawnPlayerVolley", () => {
 });
 
 describe("hitPlayer", () => {
-  it("kills an alive player and reduces teamLives", () => {
+  it("reduces hp by 1 and grants damage invulnerability", () => {
     const match = createMockMatch();
     const player = match.players.get("p1")!;
     hitPlayer(match, player);
+    assert.equal(player.hp, PLAYER_MAX_HP - 1);
+    assert.equal(player.alive, true);
+    assert.equal(player.invulnerableMs, DAMAGE_INVULN_MS);
+    assert.equal(match.teamLives, 6);
+  });
+
+  it("kills player when hp reaches 0 and reduces teamLives", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    player.hp = 1;
+    hitPlayer(match, player);
+    assert.equal(player.hp, 0);
     assert.equal(player.alive, false);
     assert.equal(match.teamLives, 5);
   });
@@ -214,6 +228,7 @@ describe("hitPlayer", () => {
     player.invulnerableMs = 1000;
     hitPlayer(match, player);
     assert.equal(player.alive, true);
+    assert.equal(player.hp, PLAYER_MAX_HP);
     assert.equal(match.teamLives, 6);
   });
 
@@ -223,7 +238,20 @@ describe("hitPlayer", () => {
     player.shieldMs = 5000;
     hitPlayer(match, player);
     assert.equal(player.alive, true);
+    assert.equal(player.hp, PLAYER_MAX_HP);
     assert.equal(match.teamLives, 6);
+  });
+
+  it("multi-hit kills player after PLAYER_MAX_HP hits", () => {
+    const match = createMockMatch();
+    const player = match.players.get("p1")!;
+    for (let i = 0; i < PLAYER_MAX_HP; i++) {
+      player.invulnerableMs = 0;
+      hitPlayer(match, player);
+    }
+    assert.equal(player.hp, 0);
+    assert.equal(player.alive, false);
+    assert.equal(match.teamLives, 5);
   });
 });
 
@@ -287,7 +315,7 @@ describe("resolveCollisions", () => {
     assert.equal(match.enemies.length, 0);
   });
 
-  it("enemy bullet hits player and removes bullet", () => {
+  it("enemy bullet hits player reducing hp and removes bullet", () => {
     const match = createMockMatch();
     const player = match.players.get("p1")!;
     player.x = 200;
@@ -306,7 +334,8 @@ describe("resolveCollisions", () => {
     });
     resolveCollisions(match);
     assert.equal(match.bullets.length, 0);
-    assert.equal(player.alive, false);
+    assert.equal(player.hp, PLAYER_MAX_HP - 1);
+    assert.equal(player.alive, true);
   });
 
   it("boss body collision triggers killEnemy and stage transition", () => {
@@ -366,7 +395,7 @@ describe("resolveCollisions", () => {
     assert.equal(match.enemies.length, 0, "enemy should be killed by edge-grazing bullet");
   });
 
-  it("normal enemy body collision removes enemy", () => {
+  it("normal enemy body collision removes enemy and damages player", () => {
     const match = createMockMatch();
     const enemy = createEnemy(match, "fighter", 0, "w1");
     const player = match.players.get("p1")!;
@@ -375,7 +404,7 @@ describe("resolveCollisions", () => {
     match.enemies.push(enemy);
     resolveCollisions(match);
     assert.equal(match.enemies.length, 0, "enemy should be removed after body collision");
-    assert.equal(player.alive, false, "player should be killed by body collision");
+    assert.equal(player.hp, PLAYER_MAX_HP - 1, "player should lose 1 hp from body collision");
   });
 });
 
@@ -508,7 +537,7 @@ describe("enemy swept collision detection", () => {
 
     resolveCollisions(match);
     assert.equal(match.bullets.length, 0, "enemy bullet should be consumed on swept hit");
-    assert.equal(player.alive, false, "player should be hit by edge-grazing enemy bullet");
+    assert.equal(player.hp, PLAYER_MAX_HP - 1, "player should lose hp from edge-grazing enemy bullet");
   });
 
   it("enemy bullet clearly missing player does not register", () => {
@@ -559,7 +588,7 @@ describe("enemy swept collision detection", () => {
     match.enemies.push(enemy);
     resolveCollisions(match);
     assert.equal(match.enemies.length, 0, "kamikaze should be killed on swept body collision");
-    assert.equal(player.alive, false, "player should be hit by edge-grazing kamikaze");
+    assert.equal(player.hp, PLAYER_MAX_HP - 1, "player should lose hp from edge-grazing kamikaze");
   });
 
   it("enemy prevX/prevY initialized correctly at spawn", () => {
@@ -673,5 +702,26 @@ describe("laser beam weapon", () => {
     // Now bullets should spawn
     updateMatch(match, inputs, 33);
     assert.ok(match.bullets.length > 0, "bullets should be spawned after laser expires");
+  });
+});
+
+describe("snapshot includes health and shield fields", () => {
+  it("snapshot players contain hp, maxHp, and shieldRemainingMs", () => {
+    const match = createMatch("SNAP1", "campaign", [
+      { playerId: "p1", name: "TestPilot", shipId: "azure", isHost: true, connected: true },
+    ]);
+    const player = match.players.get("p1")!;
+    player.shieldMs = 3000;
+    const inputs = new Map<string, InputState>();
+    inputs.set("p1", { up: false, down: false, left: false, right: false, shoot: false });
+
+    const result = updateMatch(match, inputs, 33);
+    assert.ok(result, "updateMatch should return a result");
+    const selfSnap = result.snapshot.players.find((p: { playerId: string }) => p.playerId === "p1");
+    assert.ok(selfSnap, "snapshot should include player p1");
+    assert.equal(selfSnap.hp, PLAYER_MAX_HP);
+    assert.equal(selfSnap.maxHp, PLAYER_MAX_HP);
+    assert.equal(typeof selfSnap.shieldRemainingMs, "number");
+    assert.ok(selfSnap.shieldRemainingMs > 0, "shieldRemainingMs should reflect active shield");
   });
 });

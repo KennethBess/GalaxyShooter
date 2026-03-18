@@ -3,6 +3,7 @@ import { createClient } from "redis";
 import { loadBackendConfig } from "./config.js";
 import { type ConnectionGateway, WebSocketConnectionGateway } from "./connectionGateway.js";
 import { InMemoryLeaderboardRepository, type LeaderboardRepository, RedisLeaderboardRepository } from "./leaderboardRepository.js";
+import { InMemoryPlayerRepository, type PlayerRepository, RedisPlayerRepository } from "./playerRepository.js";
 import { InMemoryRoomDirectory, RedisRoomDirectory } from "./roomDirectory.js";
 import { RoomManager } from "./roomManager.js";
 import { InMemoryRoomMessageBus, RedisRoomMessageBus } from "./roomMessageBus.js";
@@ -23,6 +24,7 @@ export type RealtimeModeConfig =
 export interface RoomManagerBootstrap {
   roomManager: RoomManager;
   leaderboard: LeaderboardRepository;
+  players: PlayerRepository;
   realtime: RealtimeModeConfig;
   dispose: () => Promise<void>;
 }
@@ -50,6 +52,7 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
 
   if (!config.redisUrl) {
     const leaderboard = new InMemoryLeaderboardRepository();
+    const players = new InMemoryPlayerRepository();
     const service = new RoomService(
       new InMemoryRoomRepository(),
       runtimeRegistry,
@@ -63,6 +66,7 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
     return {
       roomManager: new RoomManager(service),
       leaderboard,
+      players,
       realtime,
       dispose: async () => {}
     };
@@ -87,6 +91,7 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
     await bus.initialize();
 
     const leaderboard = new RedisLeaderboardRepository(eventClient);
+    const players = new RedisPlayerRepository(eventClient);
     const service = new RoomService(
       new RedisRoomRepository(eventClient, config.roomStateTtlSeconds),
       runtimeRegistry,
@@ -101,6 +106,7 @@ export const createRoomManagerFromEnv = async (): Promise<RoomManagerBootstrap> 
     return {
       roomManager: new RoomManager(service),
       leaderboard,
+      players,
       realtime,
       dispose: async () => {
         await bus.close();

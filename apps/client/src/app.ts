@@ -1,13 +1,17 @@
 import { DEFAULT_SHIP_ID, type GameMode, type LeaderboardEntry, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
 import QRCode from "qrcode";
+<<<<<<< HEAD
 import { createRoom, deleteLeaderboardEntry, fetchLeaderboard, joinRoom, listOpenRooms } from "./api";
+=======
+import { createRoom, fetchLeaderboard, joinRoom, listOpenRooms, registerPlayer, resetLeaderboard } from "./api";
+>>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
 import { RoomConnection } from "./network";
 import { createGame } from "./phaser/game";
-import { clearSession, loadScores, loadSession, loadSettings, type StoredSession, saveScore, saveSession, saveSettings } from "./storage";
+import { clearRegistration, clearSession, loadRegistration, loadScores, loadSession, loadSettings, saveRegistration, type StoredSession, saveScore, saveSession, saveSettings } from "./storage";
 import { heroBannerSvg, shipLabel, shipPreviewSvg } from "./templates";
 
 interface AppState {
-  screen: "home" | "lobby" | "game" | "results" | "scores" | "settings";
+  screen: "register" | "home" | "lobby" | "game" | "results" | "scores" | "settings";
   room: RoomState | null;
   snapshot: SnapshotState | null;
   result: ResultSummary | null;
@@ -21,7 +25,7 @@ interface AppState {
   leaderboardEntries: LeaderboardEntry[];
   leaderboardLoading: boolean;
   leaderboardError: string | null;
-  previousScreen: "home" | "results";
+  previousScreen: "home" | "results" | "register";
 }
 
 export class App {
@@ -42,8 +46,9 @@ export class App {
   private homeMode: "create" | "join" = "create";
   private eventAbort: AbortController | null = null;
   private renderedFeedCount = 0;
+  private registration = loadRegistration();
   private state: AppState = {
-    screen: "home",
+    screen: loadRegistration() ? "home" : "register",
     room: null,
     snapshot: null,
     result: null,
@@ -68,7 +73,7 @@ export class App {
   private render() {
     const room = this.state.room;
     const players = room?.players ?? [];
-    const playerName = this.session?.playerName ?? "";
+    const playerName = this.session?.playerName ?? this.registration?.fullName ?? "";
     const myPlayer = players.find((player) => player.playerId === this.session?.playerId);
     const scores = loadScores();
 
@@ -146,6 +151,35 @@ export class App {
     scores: ReturnType<typeof loadScores>
   ) {
     switch (this.state.screen) {
+      case "register":
+        return `
+          <main id="maincontent" tabindex="-1" class="front-page landing-page screen-enter">
+            <div class="landing-grid">
+              <section class="hero landing-hero">
+                <div class="hero-art" aria-hidden="true">${heroBannerSvg()}</div>
+                <div class="landing-copy">
+                  <p class="eyebrow">Player Registration</p>
+                  <h1>Galaxy Shooter</h1>
+                  <p class="lede">Register to join the action. Your pilot name will be pre-filled from your full name.</p>
+                </div>
+                <div class="landing-support">
+                  <div class="notice-banner" role="status" aria-live="polite">${this.escape(this.state.notice)}</div>
+                </div>
+              </section>
+              <section class="front-card landing-panel">
+                <form id="register-form" class="stack compact-stack">
+                  <label for="reg-fullname" class="sr-only">Full name</label>
+                  <input id="reg-fullname" name="fullName" maxlength="100" placeholder="Full name" required />
+                  <label for="reg-email" class="sr-only">Email address</label>
+                  <input id="reg-email" name="email" type="email" placeholder="Email address" required />
+                  <label for="reg-phone" class="sr-only">Phone number (optional)</label>
+                  <input id="reg-phone" name="phone" maxlength="20" placeholder="Phone number (optional)" />
+                  <button type="submit" class="primary-button" ${this.state.busy ? "disabled" : ""}>Register &amp; Play</button>
+                </form>
+              </section>
+            </div>
+          </main>
+        `;
       case "home":
         return `
           <main id="maincontent" tabindex="-1" class="front-page landing-page screen-enter">
@@ -182,6 +216,7 @@ export class App {
                 <div class="utility-actions">
                   <button id="show-leaderboard" class="secondary-button">Leaderboard</button>
                   <button id="show-settings" class="secondary-button">Settings</button>
+                  <button id="switch-player" class="ghost-button">Switch Player</button>
                 </div>
               </section>
             </div>
@@ -295,6 +330,7 @@ export class App {
               <section class="lb-body">
                 ${this.renderLeaderboardBody()}
               </section>
+              ${new URLSearchParams(window.location.search).has("admin") ? '<button id="lb-reset" class="secondary-button lb-reset-btn">Reset Scores</button>' : ""}
               <button id="back-from-scores" class="secondary-button lb-back">Back</button>
             </div>
           </main>
@@ -564,6 +600,17 @@ export class App {
     this.eventAbort = new AbortController();
     const { signal } = this.eventAbort;
 
+    const registerForm = this.root.querySelector("#register-form") as HTMLFormElement | null;
+    registerForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = new FormData(registerForm);
+      await this.handleRegister(
+        String(form.get("fullName") ?? ""),
+        String(form.get("email") ?? ""),
+        String(form.get("phone") ?? "")
+      );
+    }, { signal });
+
     const activeForm = this.root.querySelector(`#${this.homeMode}-form`) as HTMLFormElement | null;
     activeForm?.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -610,6 +657,15 @@ export class App {
       }, { signal });
     });
 
+    this.root.querySelector("#switch-player")?.addEventListener("click", () => {
+      clearRegistration();
+      this.registration = null;
+      this.session = null;
+      clearSession();
+      this.state.screen = "register";
+      this.state.notice = "Register a new player.";
+      this.render();
+    }, { signal });
     this.root.querySelector("#show-leaderboard")?.addEventListener("click", () => {
       this.state.previousScreen = "home";
       this.state.leaderboardRank = null;
@@ -646,6 +702,7 @@ export class App {
     this.root.querySelector("#lb-retry")?.addEventListener("click", () => {
       void this.loadLeaderboard(this.state.leaderboardMode);
     }, { signal });
+<<<<<<< HEAD
     this.root.querySelectorAll<HTMLElement>("[data-lb-delete]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.lbDelete!;
@@ -661,6 +718,21 @@ export class App {
         })();
       }, { signal });
     });
+=======
+    this.root.querySelector("#lb-reset")?.addEventListener("click", () => {
+      if (!confirm(`Reset all ${this.state.leaderboardMode} scores? This cannot be undone.`)) return;
+      void (async () => {
+        try {
+          await resetLeaderboard(this.state.leaderboardMode);
+          void this.loadLeaderboard(this.state.leaderboardMode);
+        } catch (error) {
+          this.state.leaderboardError = error instanceof Error ? error.message : "Reset failed";
+          this.state.leaderboardEntries = [];
+          this.render();
+        }
+      })();
+    }, { signal });
+>>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
     this.root.querySelector("#back-lobby")?.addEventListener("click", () => this.backToLobby(), { signal });
     this.root.querySelector("#leave-room")?.addEventListener("click", () => this.leaveRoom(), { signal });
     this.root.querySelector("#toggle-ready")?.addEventListener("click", () => {
@@ -729,6 +801,21 @@ export class App {
     }
 
     await this.handleJoin(playerName, roomCode, shipId);
+  }
+
+  private async handleRegister(fullName: string, email: string, phone: string) {
+    this.setBusy(true, "Registering...");
+    try {
+      const result = await registerPlayer({ fullName, email, phone: phone || undefined });
+      this.registration = { playerId: result.playerId, fullName: result.fullName };
+      saveRegistration(this.registration);
+      this.state.screen = "home";
+      this.state.notice = "Registration complete! Create a room or join with a code.";
+    } catch (error) {
+      this.state.notice = error instanceof Error ? error.message : "Registration failed";
+    } finally {
+      this.setBusy(false);
+    }
   }
 
   private async handleCreate(playerName: string, shipIdRaw: string) {

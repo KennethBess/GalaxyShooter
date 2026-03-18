@@ -35,6 +35,8 @@ export interface RuntimePlayer {
   shieldMs: number;
   rapidFireMs: number;
   laserMs: number;
+  hp: number;
+  maxHp: number;
 }
 
 export interface RuntimeEnemy {

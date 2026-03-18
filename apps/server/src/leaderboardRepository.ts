@@ -18,7 +18,11 @@ export interface SubmitResult {
 export interface LeaderboardRepository {
   submit(entry: LeaderboardSubmission): Promise<SubmitResult>;
   getTopScores(mode: GameMode, limit?: number): Promise<LeaderboardEntry[]>;
+<<<<<<< HEAD
   deleteEntry(id: string): Promise<boolean>;
+=======
+  reset(mode: GameMode | "all"): Promise<void>;
+>>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
 }
 
 const MAX_ENTRIES = 20;
@@ -69,6 +73,14 @@ export class InMemoryLeaderboardRepository implements LeaderboardRepository {
   async getTopScores(mode: GameMode, limit = MAX_ENTRIES): Promise<LeaderboardEntry[]> {
     const board = this.boards.get(mode) ?? [];
     return board.slice(0, limit).map((entry, index) => ({ ...entry, rank: index + 1 }));
+  }
+
+  async reset(mode: GameMode | "all"): Promise<void> {
+    if (mode === "all") {
+      this.boards.clear();
+    } else {
+      this.boards.delete(mode);
+    }
   }
 }
 
@@ -154,5 +166,18 @@ export class RedisLeaderboardRepository implements LeaderboardRepository {
       });
     }
     return entries;
+  }
+
+  async reset(mode: GameMode | "all"): Promise<void> {
+    const modes: GameMode[] = mode === "all" ? ["campaign", "survival"] : [mode];
+    for (const m of modes) {
+      const key = scoresKey(m);
+      const ids = await this.client.zRange(key, 0, -1);
+      const pipeline = this.client.multi().del(key);
+      for (const id of ids) {
+        pipeline.del(entryKey(id));
+      }
+      await pipeline.exec();
+    }
   }
 }

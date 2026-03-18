@@ -150,10 +150,12 @@ input::placeholder {
 }
 
 .front-page {
-  min-height: 100vh;
-  padding: clamp(1rem, 2.4vh, 1.6rem);
+  min-height: 100dvh;
+  max-height: 100dvh;
+  padding: clamp(0.75rem, 1.8vh, 1.6rem);
   display: flex;
   justify-content: center;
+  overflow: hidden;
 }
 
 .front-shell {
@@ -216,7 +218,7 @@ h3 {
 }
 
 .notice-banner {
-  padding: 0.95rem 1.15rem;
+  padding: clamp(0.55rem, 1vh, 0.95rem) 1.15rem;
   border-radius: 20px;
   background: rgba(38, 59, 88, 0.84);
   border: 1px solid rgba(111, 170, 229, 0.28);
@@ -225,7 +227,7 @@ h3 {
 
 .front-card,
 .game-card {
-  padding: 1.35rem;
+  padding: clamp(0.85rem, 1.5vh, 1.35rem);
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(30, 42, 66, 0.96), rgba(19, 28, 44, 0.96));
   border: 1px solid var(--stroke);
@@ -285,23 +287,22 @@ h3 {
 }
 
 .landing-page {
-  align-items: center;
+  align-items: stretch;
 }
 
 .landing-grid {
   width: min(1180px, 100%);
-  min-height: min(760px, calc(100vh - 2 * clamp(1rem, 2.4vh, 1.6rem)));
   display: grid;
   grid-template-columns: minmax(300px, 0.95fr) minmax(420px, 1fr);
   gap: clamp(1rem, 2.2vw, 2rem);
-  align-items: stretch;
+  align-items: center;
 }
 
 .landing-hero {
   align-content: center;
   justify-items: start;
-  gap: 1.15rem;
-  padding: clamp(0.25rem, 1vh, 1rem) 0;
+  gap: clamp(0.4rem, 1.2vh, 1.15rem);
+  padding: clamp(0.15rem, 0.6vh, 1rem) 0;
 }
 
 .hero-art,
@@ -316,6 +317,7 @@ h3 {
   border: 1px solid rgba(123, 182, 239, 0.16);
   background: rgba(9, 18, 31, 0.55);
   box-shadow: 0 20px 60px rgba(2, 8, 18, 0.36);
+  max-height: clamp(70px, 14vh, 180px);
 }
 
 .hero-art svg {
@@ -331,7 +333,7 @@ h3 {
 
 .landing-support {
   display: grid;
-  gap: 1rem;
+  gap: clamp(0.4rem, 0.8vh, 1rem);
 }
 
 .landing-copy .eyebrow {
@@ -347,7 +349,8 @@ h3 {
 }
 
 .landing-hero h1 {
-  font-size: clamp(3.6rem, 7vw, 6rem);
+  font-size: clamp(2.6rem, min(7vw, 7vh), 6rem);
+  line-height: 1.05;
 }
 
 .hero-meta {
@@ -357,7 +360,7 @@ h3 {
 }
 
 .hero-meta span {
-  padding: 0.65rem 0.85rem;
+  padding: clamp(0.35rem, 0.6vh, 0.65rem) 0.85rem;
   border-radius: 999px;
   background: rgba(25, 41, 65, 0.7);
   border: 1px solid rgba(123, 182, 239, 0.16);
@@ -367,18 +370,17 @@ h3 {
 
 .landing-panel {
   display: grid;
-  gap: 1rem;
+  gap: clamp(0.5rem, 1vh, 1rem);
   align-content: center;
   min-height: 0;
 }
 
 .lobby-page {
-  align-items: center;
+  align-items: stretch;
 }
 
 .lobby-grid {
   width: min(1180px, 100%);
-  min-height: min(760px, calc(100vh - 2 * clamp(1rem, 2.4vh, 1.6rem)));
   display: grid;
   grid-template-columns: minmax(300px, 0.9fr) minmax(480px, 1fr);
   gap: clamp(1rem, 2.2vw, 2rem);
@@ -418,7 +420,7 @@ h3 {
 
 .lobby-panel {
   display: grid;
-  gap: 1rem;
+  gap: clamp(0.5rem, 1vh, 1rem);
   align-content: start;
 }
 
@@ -487,9 +489,9 @@ h3 {
 .ship-option {
   position: relative;
   display: grid;
-  gap: 0.45rem;
+  gap: clamp(0.2rem, 0.4vh, 0.45rem);
   justify-items: center;
-  padding: 0.55rem 0.4rem 0.75rem;
+  padding: clamp(0.3rem, 0.5vh, 0.55rem) 0.4rem clamp(0.4rem, 0.7vh, 0.75rem);
   border-radius: 20px;
   border: 1px solid rgba(101, 152, 206, 0.28);
   background: rgba(17, 28, 47, 0.92);
@@ -706,25 +708,24 @@ h3 {
 
 @media (max-width: 920px) {
   .front-page {
+    max-height: none;
+    min-height: 100dvh;
+    overflow: auto;
     padding: 1.15rem 0.95rem 1.5rem;
   }
 
-  .landing-page {
-    align-items: flex-start;
-  }
-
-  .landing-grid {
-    min-height: auto;
-    grid-template-columns: 1fr;
-  }
-
+  .landing-page,
   .lobby-page {
     align-items: flex-start;
   }
 
+  .landing-grid,
   .lobby-grid {
-    min-height: auto;
     grid-template-columns: 1fr;
+  }
+
+  .hero-art {
+    max-height: none;
   }
 
   .landing-hero {
