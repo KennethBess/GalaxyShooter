@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Server persists match scores to Redis
-The server SHALL write the team score to a Redis sorted set when a match ends. Each game mode (campaign, survival) SHALL have its own sorted set key (`leaderboard:{mode}:scores`). Entry metadata SHALL be stored in a separate Redis hash key (`leaderboard:entry:{id}`).
+The server SHALL write the team score to a Redis sorted set when a match ends. Each game mode (campaign, survival) SHALL have its own sorted set key (`leaderboard:{mode}:scores`). Entry metadata SHALL be stored in a separate Redis hash key (`leaderboard:entry:{id}`), including the host player's registered email.
 
 #### Scenario: Score submitted after match victory
 - **WHEN** a campaign match ends with outcome "victory" and a team score of 5000
@@ -12,6 +12,14 @@ The server SHALL write the team score to a Redis sorted set when a match ends. E
 - **WHEN** a survival match ends with outcome "defeat" and a team score of 3200
 - **THEN** the server writes an entry to the `leaderboard:survival:scores` sorted set with score 3200
 - **AND** stores the entry metadata hash with the same fields as a victory
+
+#### Scenario: Score submitted with email
+- **WHEN** a match ends and the host player has a registered email
+- **THEN** the entry metadata hash includes the `email` field
+
+#### Scenario: Score submitted without email
+- **WHEN** a match ends and the host player has no registered email (unregistered player)
+- **THEN** the entry metadata hash stores `email` as an empty string
 
 ### Requirement: Leaderboard retains only top 20 entries per mode
 The server SHALL trim each sorted set to the top 20 entries after every insertion. Entries displaced from the top 20 SHALL have their associated hash keys deleted.
@@ -80,8 +88,8 @@ Score submission to the leaderboard SHALL be non-blocking. If the submission fai
 - **AND** the error is logged
 
 ### Requirement: LeaderboardEntry shared type
-The `packages/shared` module SHALL export a `LeaderboardEntry` interface containing: `id` (string), `playerName` (string), `score` (number), `mode` (GameMode), `stageReached` (number), `durationMs` (number), `playerCount` (number), `achievedAt` (number), and `rank` (number).
+The `packages/shared` module SHALL export a `LeaderboardEntry` interface containing: `id` (string), `playerName` (string), `email` (string), `score` (number), `mode` (GameMode), `stageReached` (number), `durationMs` (number), `playerCount` (number), `achievedAt` (number), and `rank` (number).
 
 #### Scenario: Type is available to client and server
 - **WHEN** the client or server imports from `@space-shmup/shared`
-- **THEN** the `LeaderboardEntry` type is available for use
+- **THEN** the `LeaderboardEntry` type includes the `email` field

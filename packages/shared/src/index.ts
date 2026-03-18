@@ -54,6 +54,7 @@ export type PickupKind = "weapon" | "bomb" | "shield" | "rapid_fire" | "laser";
 export interface PlayerSlot {
   playerId: string;
   name: string;
+  email: string;
   shipId: ShipId;
   isHost: boolean;
   connected: boolean;
@@ -171,6 +172,7 @@ export interface ResultSummary {
 export interface LeaderboardEntry {
   id: string;
   playerName: string;
+  email: string;
   score: number;
   mode: GameMode;
   stageReached: number;
@@ -238,11 +240,13 @@ export interface PlayerRecord {
 export interface CreateRoomRequest {
   playerName: string;
   shipId: ShipId;
+  email?: string;
 }
 
 export interface JoinRoomRequest {
   playerName: string;
   shipId: ShipId;
+  email?: string;
 }
 
 export interface RealtimeNegotiationRequest {

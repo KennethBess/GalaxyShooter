@@ -246,7 +246,7 @@ app.get("/health", (_req, res) => {
 app.post("/rooms", async (req, res) => {
   try {
     const body = parseCreateRoomRequest(req.body);
-    res.status(201).json(await roomManager.createRoom(body.playerName, body.shipId));
+    res.status(201).json(await roomManager.createRoom(body.playerName, body.shipId, body.email));
   } catch (error) {
     logError("Create room failed", error);
     res.status(400).json({ message: error instanceof Error ? error.message : "Unable to create room" });
@@ -344,7 +344,7 @@ app.get("/players/export", async (_req, res) => {
 app.post("/rooms/:code/join", async (req, res) => {
   try {
     const body = parseJoinRoomRequest(req.body);
-    res.status(200).json(await roomManager.joinRoom(req.params.code, body.playerName, body.shipId));
+    res.status(200).json(await roomManager.joinRoom(req.params.code, body.playerName, body.shipId, body.email));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to join room";
     const status = message === "Room not found" ? 404 : message === "Room is full" ? 409 : 400;

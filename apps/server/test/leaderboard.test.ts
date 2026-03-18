@@ -33,9 +33,9 @@ describe("InMemoryLeaderboardRepository", () => {
 
   it("sorts entries by score descending", async () => {
     const repo = new InMemoryLeaderboardRepository();
-    await repo.submit({ playerName: "Low", score: 100, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
-    await repo.submit({ playerName: "High", score: 9000, mode: "campaign", stageReached: 5, durationMs: 90000, playerCount: 1 });
-    await repo.submit({ playerName: "Mid", score: 3000, mode: "campaign", stageReached: 3, durationMs: 50000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "Low", score: 100, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "High", score: 9000, mode: "campaign", stageReached: 5, durationMs: 90000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "Mid", score: 3000, mode: "campaign", stageReached: 3, durationMs: 50000, playerCount: 1 });
 
     const entries = await repo.getTopScores("campaign");
     assert.equal(entries.length, 3);
@@ -50,7 +50,7 @@ describe("InMemoryLeaderboardRepository", () => {
   it("trims to top 20 entries", async () => {
     const repo = new InMemoryLeaderboardRepository();
     for (let i = 1; i <= 25; i++) {
-      await repo.submit({ playerName: `Player${i}`, score: i * 100, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
+      await repo.submit({ email: "", playerName: `Player${i}`, score: i * 100, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
     }
 
     const entries = await repo.getTopScores("campaign");
@@ -64,10 +64,10 @@ describe("InMemoryLeaderboardRepository", () => {
   it("returns null rank when score is too low to place", async () => {
     const repo = new InMemoryLeaderboardRepository();
     for (let i = 1; i <= 20; i++) {
-      await repo.submit({ playerName: `Player${i}`, score: (i + 1) * 1000, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
+      await repo.submit({ email: "", playerName: `Player${i}`, score: (i + 1) * 1000, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
     }
 
-    const result = await repo.submit({ playerName: "TooLow", score: 1, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
+    const result = await repo.submit({ email: "", playerName: "TooLow", score: 1, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
     assert.equal(result.rank, null);
 
     const entries = await repo.getTopScores("campaign");
@@ -77,8 +77,8 @@ describe("InMemoryLeaderboardRepository", () => {
 
   it("isolates scores by game mode", async () => {
     const repo = new InMemoryLeaderboardRepository();
-    await repo.submit({ playerName: "CampaignAce", score: 5000, mode: "campaign", stageReached: 3, durationMs: 60000, playerCount: 1 });
-    await repo.submit({ playerName: "SurvivalAce", score: 8000, mode: "survival", stageReached: 10, durationMs: 120000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "CampaignAce", score: 5000, mode: "campaign", stageReached: 3, durationMs: 60000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "SurvivalAce", score: 8000, mode: "survival", stageReached: 10, durationMs: 120000, playerCount: 1 });
 
     const campaign = await repo.getTopScores("campaign");
     const survival = await repo.getTopScores("survival");
@@ -91,15 +91,15 @@ describe("InMemoryLeaderboardRepository", () => {
 
   it("returns correct rank on submit", async () => {
     const repo = new InMemoryLeaderboardRepository();
-    await repo.submit({ playerName: "First", score: 1000, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
-    await repo.submit({ playerName: "Third", score: 3000, mode: "campaign", stageReached: 2, durationMs: 20000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "First", score: 1000, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "Third", score: 3000, mode: "campaign", stageReached: 2, durationMs: 20000, playerCount: 1 });
 
     // Insert a score that should land at rank 1
-    const result = await repo.submit({ playerName: "Top", score: 5000, mode: "campaign", stageReached: 3, durationMs: 30000, playerCount: 1 });
+    const result = await repo.submit({ email: "", playerName: "Top", score: 5000, mode: "campaign", stageReached: 3, durationMs: 30000, playerCount: 1 });
     assert.equal(result.rank, 1);
 
     // Insert a score that should land at rank 3
-    const midResult = await repo.submit({ playerName: "Middle", score: 2000, mode: "campaign", stageReached: 1, durationMs: 15000, playerCount: 1 });
+    const midResult = await repo.submit({ email: "", playerName: "Middle", score: 2000, mode: "campaign", stageReached: 1, durationMs: 15000, playerCount: 1 });
     assert.equal(midResult.rank, 3);
   });
 
@@ -109,10 +109,19 @@ describe("InMemoryLeaderboardRepository", () => {
     assert.deepEqual(entries, []);
   });
 
+  it("stores and returns email in leaderboard entry", async () => {
+    const repo = new InMemoryLeaderboardRepository();
+    await repo.submit({ email: "ace@example.com", playerName: "Ace", score: 5000, mode: "campaign", stageReached: 3, durationMs: 60000, playerCount: 1 });
+
+    const entries = await repo.getTopScores("campaign");
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0]!.email, "ace@example.com");
+  });
+
   it("respects custom limit parameter", async () => {
     const repo = new InMemoryLeaderboardRepository();
     for (let i = 1; i <= 10; i++) {
-      await repo.submit({ playerName: `Player${i}`, score: i * 100, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
+      await repo.submit({ email: "", playerName: `Player${i}`, score: i * 100, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
     }
 
     const top5 = await repo.getTopScores("campaign", 5);
@@ -124,7 +133,7 @@ describe("InMemoryLeaderboardRepository", () => {
 describe("InMemoryLeaderboardRepository.deleteEntry", () => {
   it("deletes an existing entry and returns true", async () => {
     const repo = new InMemoryLeaderboardRepository();
-    await repo.submit({ playerName: "Ace", score: 5000, mode: "campaign", stageReached: 3, durationMs: 60000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "Ace", score: 5000, mode: "campaign", stageReached: 3, durationMs: 60000, playerCount: 1 });
     const entries = await repo.getTopScores("campaign");
     const id = entries[0]!.id;
 
@@ -143,9 +152,9 @@ describe("InMemoryLeaderboardRepository.deleteEntry", () => {
 
   it("after deletion getTopScores returns updated list", async () => {
     const repo = new InMemoryLeaderboardRepository();
-    await repo.submit({ playerName: "Alpha", score: 3000, mode: "campaign", stageReached: 2, durationMs: 30000, playerCount: 1 });
-    await repo.submit({ playerName: "Bravo", score: 5000, mode: "campaign", stageReached: 4, durationMs: 60000, playerCount: 1 });
-    await repo.submit({ playerName: "Charlie", score: 1000, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "Alpha", score: 3000, mode: "campaign", stageReached: 2, durationMs: 30000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "Bravo", score: 5000, mode: "campaign", stageReached: 4, durationMs: 60000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "Charlie", score: 1000, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
 
     const before = await repo.getTopScores("campaign");
     assert.equal(before.length, 3);
@@ -166,8 +175,8 @@ describe("InMemoryLeaderboardRepository.deleteEntry", () => {
 describe("InMemoryLeaderboardRepository reset", () => {
   it("resets a single mode", async () => {
     const repo = new InMemoryLeaderboardRepository();
-    await repo.submit({ playerName: "A", score: 100, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
-    await repo.submit({ playerName: "B", score: 200, mode: "survival", stageReached: 2, durationMs: 2000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "A", score: 100, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "B", score: 200, mode: "survival", stageReached: 2, durationMs: 2000, playerCount: 1 });
 
     await repo.reset("campaign");
 
@@ -179,8 +188,8 @@ describe("InMemoryLeaderboardRepository reset", () => {
 
   it("resets all modes", async () => {
     const repo = new InMemoryLeaderboardRepository();
-    await repo.submit({ playerName: "A", score: 100, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
-    await repo.submit({ playerName: "B", score: 200, mode: "survival", stageReached: 2, durationMs: 2000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "A", score: 100, mode: "campaign", stageReached: 1, durationMs: 1000, playerCount: 1 });
+    await repo.submit({ email: "", playerName: "B", score: 200, mode: "survival", stageReached: 2, durationMs: 2000, playerCount: 1 });
 
     await repo.reset("all");
 

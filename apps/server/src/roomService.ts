@@ -49,7 +49,7 @@ export class RoomService {
     });
   }
 
-  async createRoom(playerName: string, shipId: string = DEFAULT_SHIP_ID): Promise<RoomSummary> {
+  async createRoom(playerName: string, shipId: string = DEFAULT_SHIP_ID, email = ""): Promise<RoomSummary> {
     const name = this.validateName(playerName);
     const validatedShipId = this.validateShipId(shipId);
     const roomCode = await this.repository.allocateRoomCode();
@@ -57,6 +57,7 @@ export class RoomService {
     const host: PlayerSlot = {
       playerId: crypto.randomUUID(),
       name,
+      email,
       shipId: validatedShipId,
       isHost: true,
       connected: false,
@@ -86,7 +87,7 @@ export class RoomService {
     return { roomCode: state.roomCode, playerId: host.playerId, room: state };
   }
 
-  async joinRoom(roomCode: string, playerName: string, shipId: string = DEFAULT_SHIP_ID): Promise<RoomSummary> {
+  async joinRoom(roomCode: string, playerName: string, shipId: string = DEFAULT_SHIP_ID, email = ""): Promise<RoomSummary> {
     const state = await this.getState(roomCode);
     if (state.status !== "waiting") {
       throw new Error("Match already started");
@@ -104,6 +105,7 @@ export class RoomService {
     const player: PlayerSlot = {
       playerId: crypto.randomUUID(),
       name,
+      email,
       shipId: validatedShipId,
       isHost: false,
       connected: false,

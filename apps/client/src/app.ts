@@ -424,6 +424,7 @@ export class App {
         <div class="lb-rank-cell">${badge}</div>
         <div class="lb-info">
           <span class="lb-pilot">${this.escape(entry.playerName)}</span>
+          ${entry.email ? `<span class="lb-meta">${this.escape(entry.email)}</span>` : ""}
           <span class="lb-meta">Stage ${entry.stageReached} · ${date}</span>
         </div>
         <div class="lb-score-cell">${entry.score.toLocaleString()}</div>
@@ -855,7 +856,7 @@ export class App {
     this.setBusy(true, "Registering...");
     try {
       const result = await registerPlayer({ fullName, email, phone: phone || undefined });
-      this.registration = { playerId: result.playerId, fullName: result.fullName };
+      this.registration = { playerId: result.playerId, fullName: result.fullName, email };
       saveRegistration(this.registration);
       this.state.screen = "home";
       this.state.notice = "Registration complete! Create a room or join with a code.";
@@ -870,7 +871,8 @@ export class App {
     this.setBusy(true, "Generating room code...");
     try {
       const shipId = this.resolveShipId(shipIdRaw);
-      const summary = await createRoom({ playerName, shipId });
+      const email = this.registration?.email ?? "";
+      const summary = await createRoom({ playerName, shipId, email });
       await this.connectToRoom(summary.playerId, summary.roomCode, playerName, shipId, summary.room);
       this.state.notice = `Room ${summary.roomCode} is live. Click start game when the squad is ready.`;
     } catch (error) {
@@ -888,7 +890,8 @@ export class App {
         throw new Error(`Room code must be ${ROOM_CODE_LENGTH} characters`);
       }
       const shipId = this.resolveShipId(shipIdRaw);
-      const summary = await joinRoom(normalizedRoomCode, { playerName, shipId });
+      const email = this.registration?.email ?? "";
+      const summary = await joinRoom(normalizedRoomCode, { playerName, shipId, email });
       await this.connectToRoom(summary.playerId, summary.roomCode, playerName, shipId, summary.room);
       this.state.notice = `Joined room ${summary.roomCode}. Waiting for the host to start the game.`;
     } catch (error) {

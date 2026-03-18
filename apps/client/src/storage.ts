@@ -55,6 +55,7 @@ export const saveSettings = (settings: StoredSettings) => localStorage.setItem(S
 export interface StoredRegistration {
   playerId: string;
   fullName: string;
+  email: string;
 }
 
 export const loadSession = () => parse<StoredSession | null>(SESSION_KEY, null);

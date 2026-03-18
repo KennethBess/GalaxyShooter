@@ -4,6 +4,7 @@ import type { RedisClientType } from "redis";
 
 export interface LeaderboardSubmission {
   playerName: string;
+  email: string;
   score: number;
   mode: GameMode;
   stageReached: number;
@@ -32,6 +33,7 @@ export class InMemoryLeaderboardRepository implements LeaderboardRepository {
     const newEntry: LeaderboardEntry = {
       id: nanoid(),
       playerName: entry.playerName,
+      email: entry.email,
       score: entry.score,
       mode: entry.mode,
       stageReached: entry.stageReached,
@@ -96,6 +98,7 @@ export class RedisLeaderboardRepository implements LeaderboardRepository {
       .zAdd(key, { score: entry.score, value: id })
       .hSet(entryKey(id), {
         playerName: entry.playerName,
+        email: entry.email,
         mode: entry.mode,
         score: String(entry.score),
         stageReached: String(entry.stageReached),
@@ -153,6 +156,7 @@ export class RedisLeaderboardRepository implements LeaderboardRepository {
       entries.push({
         id,
         playerName: data.playerName,
+        email: data.email ?? "",
         score: Number(data.score),
         mode: data.mode as GameMode,
         stageReached: Number(data.stageReached),

@@ -7,11 +7,13 @@ const shipIdSchema = z.enum(SHIP_IDS).optional();
 const createRoomRequestSchema = z.object({
   playerName: playerNameSchema,
   shipId: shipIdSchema,
+  email: z.string().trim().optional(),
 });
 
 const joinRoomRequestSchema = z.object({
   playerName: playerNameSchema,
   shipId: shipIdSchema,
+  email: z.string().trim().optional(),
 });
 
 const realtimeNegotiationRequestSchema = z.object({

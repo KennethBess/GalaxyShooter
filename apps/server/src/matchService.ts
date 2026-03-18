@@ -66,6 +66,7 @@ export class MatchService {
         const hostPlayer = state.players.find((p) => p.isHost);
         const submitResult = await this.leaderboard.submit({
           playerName: hostPlayer?.name ?? state.players[0]?.name ?? "Unknown",
+          email: hostPlayer?.email ?? state.players[0]?.email ?? "",
           score: result.score,
           mode: result.mode,
           stageReached: result.stageReached,

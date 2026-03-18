@@ -43,7 +43,7 @@ The leaderboard screen SHALL display tab-style toggles for "Campaign" and "Survi
 - **THEN** the "Campaign" tab is selected by default
 
 ### Requirement: Professional rank display
-Each leaderboard entry SHALL display a rank number (1-20). The top 3 ranks SHALL have visually distinct styling (gold for 1st, silver for 2nd, bronze for 3rd). All entries SHALL display in a consistent row layout with columns for rank, player name, score, stage reached, and date.
+Each leaderboard entry SHALL display a rank number (1-20). The top 3 ranks SHALL have visually distinct styling (gold for 1st, silver for 2nd, bronze for 3rd). All entries SHALL display in a consistent row layout with columns for rank, player name, email, score, stage reached, and date.
 
 #### Scenario: Top 3 entries have special styling
 - **WHEN** the leaderboard screen renders entries
@@ -54,6 +54,14 @@ Each leaderboard entry SHALL display a rank number (1-20). The top 3 ranks SHALL
 #### Scenario: Entries beyond top 3
 - **WHEN** the leaderboard displays entries ranked 4-20
 - **THEN** entries use the standard text color with no special rank styling
+
+#### Scenario: Email displayed on each entry
+- **WHEN** the leaderboard screen renders entries
+- **THEN** each row displays the player's registered email below or alongside their name
+
+#### Scenario: Entry without email
+- **WHEN** a leaderboard entry has an empty email
+- **THEN** the email area is blank or hidden (no placeholder text)
 
 ### Requirement: Animated entry transitions
 Leaderboard entries SHALL animate in with a staggered reveal effect when the screen loads or when switching mode tabs.
