@@ -43,6 +43,7 @@ export class App {
   private eventAbort: AbortController | null = null;
   private renderedFeedCount = 0;
   private registration = loadRegistration();
+  private congratsTimer: ReturnType<typeof setInterval> | null = null;
   private state: AppState = {
     screen: loadRegistration() ? "home" : "register",
     room: null,
@@ -101,35 +102,72 @@ export class App {
   }
 
   private startResultsAnimation() {
+    this.clearCongratsTimer();
     const el = this.root.querySelector<HTMLElement>("#results-score");
     if (!el) return;
     const target = Number(el.dataset.target ?? 0);
-    const playerCount = this.state.result?.players?.length ?? 0;
-    const lastRowDelay = 240 + playerCount * 80;
-    // CSS animation for rows is ~400ms; add that to the last row's delay
-    const totalStaggerMs = lastRowDelay + 400;
-
-    const enableResultsButtons = () => {
-      this.root.querySelectorAll<HTMLElement>(".lobby-actions.results-row button").forEach((btn) => {
-        btn.tabIndex = 0;
-      });
-    };
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       el.textContent = String(target);
-      enableResultsButtons();
-      return;
+    } else {
+      const duration = 1500;
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - (1 - t) * (1 - t);
+        el.textContent = String(Math.round(eased * target));
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
     }
-    setTimeout(enableResultsButtons, totalStaggerMs);
-    const duration = 1200;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      const eased = 1 - (1 - t) * (1 - t);
-      el.textContent = String(Math.round(eased * target));
-      if (t < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+
+    this.startCongratsCountdown();
+  }
+
+  private startCongratsCountdown() {
+    let remaining = 10;
+    const timerEl = this.root.querySelector<HTMLElement>("#congrats-timer");
+    if (timerEl) timerEl.textContent = String(remaining);
+    this.congratsTimer = setInterval(() => {
+      remaining--;
+      const el = this.root.querySelector<HTMLElement>("#congrats-timer");
+      if (el) el.textContent = String(remaining);
+      if (remaining <= 0) {
+        this.clearCongratsTimer();
+        clearRegistration();
+        clearSession();
+        this.connection?.disconnect();
+        this.connection = null;
+        this.session = null;
+        this.registration = null;
+        this.state = {
+          screen: "register",
+          room: null,
+          snapshot: null,
+          result: null,
+          notice: "",
+          busy: false,
+          eventLog: [],
+          openRooms: [],
+          roomsBusy: false,
+          leaderboardRank: null,
+          leaderboardMode: "campaign",
+          leaderboardEntries: [],
+          leaderboardLoading: false,
+          leaderboardError: null,
+          previousScreen: "home"
+        };
+        this.game.clear();
+        this.render();
+      }
+    }, 1000);
+  }
+
+  private clearCongratsTimer() {
+    if (this.congratsTimer) {
+      clearInterval(this.congratsTimer);
+      this.congratsTimer = null;
+    }
   }
 
   private mountGameHost() {
@@ -288,25 +326,28 @@ export class App {
         const outcome = this.state.result?.outcome === "victory";
         const finalScore = this.state.result?.score ?? 0;
         return `
-          <main id="maincontent" tabindex="-1" class="front-page screen-enter">
-            <div class="front-shell compact-shell">
-              <header class="hero compact-hero">
-                <p class="eyebrow">Mission ${outcome ? "Cleared" : "Failed"}</p>
-                <h1 id="results-score" data-target="${finalScore}">0</h1>
-                <p class="lede">${this.escape(this.state.notice)}</p>
-              </header>
-              <section class="front-card ${outcome ? "results-win" : "results-fail"}">
-                <p class="results-row" style="animation-delay:0ms">Mode: ${this.escape(this.state.result?.mode ?? "-")}</p>
-                <p class="results-row" style="animation-delay:80ms">Stage reached: ${this.state.result?.stageReached ?? 0}</p>
-                <p class="results-row" style="animation-delay:160ms">Duration: ${Math.round((this.state.result?.durationMs ?? 0) / 1000)}s</p>
-                <ul class="roster compact-roster">
-                  ${(this.state.result?.players ?? []).map((player, i) => `<li class="results-row" style="animation-delay:${240 + i * 80}ms"><span>${this.escape(player.name)} (${this.escape(shipLabel(player.shipId))})</span><span>${player.score}</span></li>`).join("")}
-                </ul>
-                <div class="lobby-actions results-row" style="animation-delay:${240 + (this.state.result?.players?.length ?? 0) * 80}ms">
-                  ${room?.status === "waiting" ? '<button id="back-lobby" class="primary-button" tabindex="-1">Back to lobby</button>' : '<button id="back-home" class="primary-button" tabindex="-1">Front page</button>'}
-                  <button id="show-scores" class="secondary-button" tabindex="-1">High Scores</button>
-                </div>
-              </section>
+          <main id="maincontent" tabindex="-1" class="front-page congrats-page screen-enter">
+            <div class="congrats-shell">
+              <div class="congrats-heading congrats-anim" style="animation-delay:0ms">
+                <p class="eyebrow">${outcome ? "Mission Complete!" : "Great Effort!"}</p>
+                <h1 id="results-score" class="congrats-score ${outcome ? "congrats-win-glow" : ""}" data-target="${finalScore}">0</h1>
+                <p class="congrats-subtitle">${this.escape(this.state.notice)}</p>
+              </div>
+              <div class="congrats-stats congrats-anim" style="animation-delay:300ms">
+                <div class="congrats-stat"><span class="congrats-stat-label">Mode</span><span class="congrats-stat-value">${this.escape(this.state.result?.mode ?? "-")}</span></div>
+                <div class="congrats-stat"><span class="congrats-stat-label">Stage</span><span class="congrats-stat-value">${this.state.result?.stageReached ?? 0}</span></div>
+                <div class="congrats-stat"><span class="congrats-stat-label">Duration</span><span class="congrats-stat-value">${Math.round((this.state.result?.durationMs ?? 0) / 1000)}s</span></div>
+              </div>
+              <ul class="congrats-players congrats-anim" style="animation-delay:500ms">
+                ${(this.state.result?.players ?? []).map((player) => `<li><span>${this.escape(player.name)} (${this.escape(shipLabel(player.shipId))})</span><span>${player.score.toLocaleString()}</span></li>`).join("")}
+              </ul>
+              <div class="congrats-countdown congrats-anim" style="animation-delay:700ms">
+                <span id="congrats-timer">10</span>s until next session
+              </div>
+              <div class="lobby-actions congrats-anim" style="animation-delay:700ms">
+                ${room?.status === "waiting" ? '<button id="back-lobby" class="secondary-button">Back to lobby</button>' : ""}
+                <button id="show-scores" class="secondary-button">High Scores</button>
+              </div>
             </div>
           </main>
         `;
@@ -669,6 +710,7 @@ export class App {
       void this.loadLeaderboard(this.state.leaderboardMode);
     }, { signal });
     this.root.querySelector("#show-scores")?.addEventListener("click", () => {
+      this.clearCongratsTimer();
       this.state.previousScreen = "results";
       this.state.leaderboardMode = this.state.result?.mode ?? "campaign";
       this.state.screen = "scores";
@@ -990,6 +1032,7 @@ export class App {
   }
 
   private backToLobby() {
+    this.clearCongratsTimer();
     if (!this.state.room) {
       this.resetToHome();
       return;
@@ -1005,6 +1048,7 @@ export class App {
   }
 
   private resetToHome() {
+    this.clearCongratsTimer();
     this.connection?.disconnect();
     this.connection = null;
     this.state = {

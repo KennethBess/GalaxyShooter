@@ -929,6 +929,116 @@ h3 {
   animation: resultRowIn 250ms ease-out both;
 }
 
+/* ── Congratulations screen ── */
+.congrats-page {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.congrats-shell {
+  width: min(100%, 520px);
+  display: grid;
+  gap: clamp(1rem, 2vh, 1.8rem);
+  justify-items: center;
+}
+
+@keyframes congratsFadeUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.congrats-anim {
+  animation: congratsFadeUp 500ms ease-out both;
+}
+
+.congrats-heading {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.congrats-heading .eyebrow {
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  letter-spacing: 0.18em;
+}
+
+.congrats-score {
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.congrats-win-glow {
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(127, 213, 255, 0.5), 0 0 60px rgba(127, 213, 255, 0.2);
+}
+
+.congrats-subtitle {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.congrats-stats {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.congrats-stat {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 14px;
+  background: rgba(16, 26, 44, 0.6);
+  border: 1px solid rgba(123, 182, 239, 0.08);
+}
+
+.congrats-stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.congrats-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.congrats-players {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.congrats-players li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  background: rgba(16, 26, 44, 0.5);
+  border: 1px solid rgba(123, 182, 239, 0.06);
+  font-size: 0.92rem;
+}
+
+.congrats-countdown {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.congrats-countdown #congrats-timer {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Issue #32: respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   body {
@@ -938,6 +1048,9 @@ h3 {
     animation: none;
   }
   .results-row {
+    animation: none;
+  }
+  .congrats-anim {
     animation: none;
   }
   #hero-core-group {
