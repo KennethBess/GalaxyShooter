@@ -1,6 +1,6 @@
 import { DEFAULT_SHIP_ID, type GameMode, type LeaderboardEntry, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
 import QRCode from "qrcode";
-import { createRoom, fetchLeaderboard, joinRoom, listOpenRooms } from "./api";
+import { createRoom, deleteLeaderboardEntry, fetchLeaderboard, joinRoom, listOpenRooms } from "./api";
 import { RoomConnection } from "./network";
 import { createGame } from "./phaser/game";
 import { clearSession, loadScores, loadSession, loadSettings, type StoredSession, saveScore, saveSession, saveSettings } from "./storage";
@@ -351,6 +351,7 @@ export class App {
           <span class="lb-meta">Stage ${entry.stageReached} · ${date}</span>
         </div>
         <div class="lb-score-cell">${entry.score.toLocaleString()}</div>
+        <button class="lb-remove" data-lb-delete="${entry.id}" title="Remove entry">&times;</button>
       </div>`;
     }).join("");
     return `<div class="lb-list">${rows}</div>`;
@@ -645,6 +646,21 @@ export class App {
     this.root.querySelector("#lb-retry")?.addEventListener("click", () => {
       void this.loadLeaderboard(this.state.leaderboardMode);
     }, { signal });
+    this.root.querySelectorAll<HTMLElement>("[data-lb-delete]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.lbDelete!;
+        if (!confirm("Remove this score?")) return;
+        void (async () => {
+          try {
+            await deleteLeaderboardEntry(id);
+            await this.loadLeaderboard(this.state.leaderboardMode);
+          } catch (error) {
+            this.state.leaderboardError = error instanceof Error ? error.message : "Failed to delete entry";
+            this.render();
+          }
+        })();
+      }, { signal });
+    });
     this.root.querySelector("#back-lobby")?.addEventListener("click", () => this.backToLobby(), { signal });
     this.root.querySelector("#leave-room")?.addEventListener("click", () => this.leaveRoom(), { signal });
     this.root.querySelector("#toggle-ready")?.addEventListener("click", () => {

@@ -56,3 +56,13 @@ export const negotiateRealtime = (payload: RealtimeNegotiationRequest) =>
 
 export const fetchLeaderboard = (mode: GameMode) =>
   request<LeaderboardEntry[]>(`/api/leaderboard?mode=${mode}`);
+
+export async function deleteLeaderboardEntry(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/leaderboard/${id}`, {
+    method: "DELETE"
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({ message: "Delete failed" }))) as { message?: string };
+    throw new Error(payload.message ?? "Delete failed");
+  }
+}

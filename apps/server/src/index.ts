@@ -273,6 +273,20 @@ app.get("/api/leaderboard", async (req, res) => {
   }
 });
 
+app.delete("/api/leaderboard/:id", async (req, res) => {
+  try {
+    const deleted = await leaderboard.deleteEntry(req.params.id);
+    if (!deleted) {
+      res.status(404).json({ message: "Leaderboard entry not found" });
+      return;
+    }
+    res.status(204).end();
+  } catch (error) {
+    logError("Leaderboard delete failed", error);
+    res.status(500).json({ message: error instanceof Error ? error.message : "Unable to delete entry" });
+  }
+});
+
 app.post("/rooms/:code/join", async (req, res) => {
   try {
     const body = parseJoinRoomRequest(req.body);

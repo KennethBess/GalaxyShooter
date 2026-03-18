@@ -1068,7 +1068,7 @@ h3 {
 /* Single entry row */
 .lb-entry {
   display: grid;
-  grid-template-columns: 3rem 1fr auto;
+  grid-template-columns: 3rem 1fr auto auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 1rem;
@@ -1132,6 +1132,27 @@ h3 {
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   white-space: nowrap;
+}
+
+/* Remove button */
+.lb-remove {
+  background: none;
+  border: none;
+  color: var(--text-dim, var(--muted));
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 150ms ease, color 150ms ease;
+  line-height: 1;
+}
+.lb-entry:hover .lb-remove {
+  opacity: 1;
+}
+.lb-remove:hover {
+  color: var(--accent);
+  background: rgba(123, 182, 239, 0.1);
 }
 
 /* ── Tier styling for top 3 ── */

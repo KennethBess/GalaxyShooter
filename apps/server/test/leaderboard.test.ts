@@ -121,6 +121,49 @@ describe("InMemoryLeaderboardRepository", () => {
   });
 });
 
+describe("InMemoryLeaderboardRepository.deleteEntry", () => {
+  it("deletes an existing entry and returns true", async () => {
+    const repo = new InMemoryLeaderboardRepository();
+    await repo.submit({ playerName: "Ace", score: 5000, mode: "campaign", stageReached: 3, durationMs: 60000, playerCount: 1 });
+    const entries = await repo.getTopScores("campaign");
+    const id = entries[0]!.id;
+
+    const result = await repo.deleteEntry(id);
+    assert.equal(result, true);
+
+    const after = await repo.getTopScores("campaign");
+    assert.equal(after.length, 0);
+  });
+
+  it("returns false for non-existent ID", async () => {
+    const repo = new InMemoryLeaderboardRepository();
+    const result = await repo.deleteEntry("does-not-exist");
+    assert.equal(result, false);
+  });
+
+  it("after deletion getTopScores returns updated list", async () => {
+    const repo = new InMemoryLeaderboardRepository();
+    await repo.submit({ playerName: "Alpha", score: 3000, mode: "campaign", stageReached: 2, durationMs: 30000, playerCount: 1 });
+    await repo.submit({ playerName: "Bravo", score: 5000, mode: "campaign", stageReached: 4, durationMs: 60000, playerCount: 1 });
+    await repo.submit({ playerName: "Charlie", score: 1000, mode: "campaign", stageReached: 1, durationMs: 10000, playerCount: 1 });
+
+    const before = await repo.getTopScores("campaign");
+    assert.equal(before.length, 3);
+    // Bravo is rank 1 (highest score)
+    const bravoId = before[0]!.id;
+    assert.equal(before[0]!.playerName, "Bravo");
+
+    await repo.deleteEntry(bravoId);
+
+    const after = await repo.getTopScores("campaign");
+    assert.equal(after.length, 2);
+    assert.equal(after[0]!.playerName, "Alpha");
+    assert.equal(after[0]!.rank, 1);
+    assert.equal(after[1]!.playerName, "Charlie");
+    assert.equal(after[1]!.rank, 2);
+  });
+});
+
 describe("parseLeaderboardMode", () => {
   it("accepts 'campaign'", () => {
     assert.equal(parseLeaderboardMode("campaign"), "campaign");

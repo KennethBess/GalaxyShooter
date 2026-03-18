@@ -18,6 +18,7 @@ export interface SubmitResult {
 export interface LeaderboardRepository {
   submit(entry: LeaderboardSubmission): Promise<SubmitResult>;
   getTopScores(mode: GameMode, limit?: number): Promise<LeaderboardEntry[]>;
+  deleteEntry(id: string): Promise<boolean>;
 }
 
 const MAX_ENTRIES = 20;
@@ -52,6 +53,17 @@ export class InMemoryLeaderboardRepository implements LeaderboardRepository {
       board[i]!.rank = i + 1;
     }
     return { rank: index + 1 };
+  }
+
+  async deleteEntry(id: string): Promise<boolean> {
+    for (const [mode, board] of this.boards) {
+      const index = board.findIndex((e) => e.id === id);
+      if (index !== -1) {
+        board.splice(index, 1);
+        return true;
+      }
+    }
+    return false;
   }
 
   async getTopScores(mode: GameMode, limit = MAX_ENTRIES): Promise<LeaderboardEntry[]> {
@@ -100,6 +112,19 @@ export class RedisLeaderboardRepository implements LeaderboardRepository {
       return { rank: null };
     }
     return { rank: zRank + 1 };
+  }
+
+  async deleteEntry(id: string): Promise<boolean> {
+    const data = await this.client.hGetAll(entryKey(id));
+    if (!data.mode) {
+      return false;
+    }
+    const key = scoresKey(data.mode as GameMode);
+    await this.client.multi()
+      .zRem(key, id)
+      .del(entryKey(id))
+      .exec();
+    return true;
   }
 
   async getTopScores(mode: GameMode, limit = MAX_ENTRIES): Promise<LeaderboardEntry[]> {
