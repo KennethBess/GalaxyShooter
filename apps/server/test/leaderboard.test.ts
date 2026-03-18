@@ -121,7 +121,6 @@ describe("InMemoryLeaderboardRepository", () => {
   });
 });
 
-<<<<<<< HEAD
 describe("InMemoryLeaderboardRepository.deleteEntry", () => {
   it("deletes an existing entry and returns true", async () => {
     const repo = new InMemoryLeaderboardRepository();
@@ -150,7 +149,6 @@ describe("InMemoryLeaderboardRepository.deleteEntry", () => {
 
     const before = await repo.getTopScores("campaign");
     assert.equal(before.length, 3);
-    // Bravo is rank 1 (highest score)
     const bravoId = before[0]!.id;
     assert.equal(before[0]!.playerName, "Bravo");
 
@@ -162,7 +160,9 @@ describe("InMemoryLeaderboardRepository.deleteEntry", () => {
     assert.equal(after[0]!.rank, 1);
     assert.equal(after[1]!.playerName, "Charlie");
     assert.equal(after[1]!.rank, 2);
-=======
+  });
+});
+
 describe("InMemoryLeaderboardRepository reset", () => {
   it("resets a single mode", async () => {
     const repo = new InMemoryLeaderboardRepository();
@@ -213,7 +213,6 @@ describe("parseResetMode", () => {
 
   it("rejects invalid mode", () => {
     assert.throws(() => parseResetMode("endless"));
->>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
   });
 });
 

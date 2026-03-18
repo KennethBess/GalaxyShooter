@@ -1,10 +1,6 @@
 import { DEFAULT_SHIP_ID, type GameMode, type LeaderboardEntry, type OpenRoomSummary, type ResultSummary, ROOM_CODE_LENGTH, type RoomState, type ServerMessage, SHIP_OPTIONS, type ShipId, type SnapshotState } from "@shared/index";
 import QRCode from "qrcode";
-<<<<<<< HEAD
-import { createRoom, deleteLeaderboardEntry, fetchLeaderboard, joinRoom, listOpenRooms } from "./api";
-=======
-import { createRoom, fetchLeaderboard, joinRoom, listOpenRooms, registerPlayer, resetLeaderboard } from "./api";
->>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
+import { createRoom, deleteLeaderboardEntry, fetchLeaderboard, joinRoom, listOpenRooms, registerPlayer, resetLeaderboard } from "./api";
 import { RoomConnection } from "./network";
 import { createGame } from "./phaser/game";
 import { clearRegistration, clearSession, loadRegistration, loadScores, loadSession, loadSettings, saveRegistration, type StoredSession, saveScore, saveSession, saveSettings } from "./storage";
@@ -702,7 +698,6 @@ export class App {
     this.root.querySelector("#lb-retry")?.addEventListener("click", () => {
       void this.loadLeaderboard(this.state.leaderboardMode);
     }, { signal });
-<<<<<<< HEAD
     this.root.querySelectorAll<HTMLElement>("[data-lb-delete]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.lbDelete!;
@@ -718,7 +713,6 @@ export class App {
         })();
       }, { signal });
     });
-=======
     this.root.querySelector("#lb-reset")?.addEventListener("click", () => {
       if (!confirm(`Reset all ${this.state.leaderboardMode} scores? This cannot be undone.`)) return;
       void (async () => {
@@ -732,7 +726,6 @@ export class App {
         }
       })();
     }, { signal });
->>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
     this.root.querySelector("#back-lobby")?.addEventListener("click", () => this.backToLobby(), { signal });
     this.root.querySelector("#leave-room")?.addEventListener("click", () => this.leaveRoom(), { signal });
     this.root.querySelector("#toggle-ready")?.addEventListener("click", () => {

@@ -18,11 +18,8 @@ export interface SubmitResult {
 export interface LeaderboardRepository {
   submit(entry: LeaderboardSubmission): Promise<SubmitResult>;
   getTopScores(mode: GameMode, limit?: number): Promise<LeaderboardEntry[]>;
-<<<<<<< HEAD
   deleteEntry(id: string): Promise<boolean>;
-=======
   reset(mode: GameMode | "all"): Promise<void>;
->>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
 }
 
 const MAX_ENTRIES = 20;

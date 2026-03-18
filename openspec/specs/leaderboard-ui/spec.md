@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Dedicated leaderboard screen
-The client SHALL display a full-screen leaderboard view accessible from the landing page and the results screen. The screen SHALL show up to 20 entries with rank number, player name, score, stage reached, and time achieved.
+The client SHALL display a full-screen leaderboard view accessible from the landing page and the results screen. The screen SHALL show up to 20 entries with rank number, player name, score, stage reached, time achieved, and a remove button per row.
 
 #### Scenario: Navigate to leaderboard from landing page
 - **WHEN** the user clicks the "Leaderboard" button on the landing page
@@ -16,6 +16,10 @@ The client SHALL display a full-screen leaderboard view accessible from the land
 #### Scenario: Return from leaderboard
 - **WHEN** the user clicks the "Back" button on the leaderboard screen
 - **THEN** the client transitions back to the previous screen (landing or results)
+
+#### Scenario: Each entry row includes a remove action
+- **WHEN** the leaderboard screen renders entries
+- **THEN** each row includes a remove button styled consistently with the space theme
 
 ### Requirement: Mode tab filtering
 The leaderboard screen SHALL display tab-style toggles for "Campaign" and "Survival" modes. Switching tabs SHALL fetch and display the leaderboard for the selected mode.

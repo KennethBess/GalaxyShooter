@@ -273,7 +273,6 @@ app.get("/api/leaderboard", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 app.delete("/api/leaderboard/:id", async (req, res) => {
   try {
     const deleted = await leaderboard.deleteEntry(req.params.id);
@@ -285,7 +284,9 @@ app.delete("/api/leaderboard/:id", async (req, res) => {
   } catch (error) {
     logError("Leaderboard delete failed", error);
     res.status(500).json({ message: error instanceof Error ? error.message : "Unable to delete entry" });
-=======
+  }
+});
+
 app.delete("/api/leaderboard", async (req, res) => {
   try {
     const mode = parseResetMode(req.query.mode);
@@ -337,7 +338,6 @@ app.get("/players/export", async (_req, res) => {
   } catch (error) {
     logError("Player export failed", error);
     res.status(500).json({ message: error instanceof Error ? error.message : "Export failed" });
->>>>>>> 26346b719fa32fa0259e8014001c5f359b3a3f6b
   }
 });
 
