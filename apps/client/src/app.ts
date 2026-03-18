@@ -210,6 +210,9 @@ export class App {
                   <input id="reg-phone" name="phone" maxlength="20" placeholder="Phone number (optional)" />
                   <button type="submit" class="primary-button" ${this.state.busy ? "disabled" : ""}>Register &amp; Play</button>
                 </form>
+                <div class="utility-actions">
+                  <button id="reg-show-leaderboard" class="secondary-button">Leaderboard</button>
+                </div>
               </section>
             </div>
           </main>
@@ -648,6 +651,13 @@ export class App {
       );
     }, { signal });
 
+    this.root.querySelector("#reg-show-leaderboard")?.addEventListener("click", () => {
+      this.state.previousScreen = "register";
+      this.state.leaderboardMode = "campaign";
+      this.state.screen = "scores";
+      void this.loadLeaderboard(this.state.leaderboardMode);
+    }, { signal });
+
     const activeForm = this.root.querySelector(`#${this.homeMode}-form`) as HTMLFormElement | null;
     activeForm?.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -724,6 +734,9 @@ export class App {
     this.root.querySelector("#back-from-scores")?.addEventListener("click", () => {
       if (this.state.previousScreen === "results" && this.state.result) {
         this.state.screen = "results";
+        this.render();
+      } else if (this.state.previousScreen === "register") {
+        this.state.screen = "register";
         this.render();
       } else {
         this.resetToHome();

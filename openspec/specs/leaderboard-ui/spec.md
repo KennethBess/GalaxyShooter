@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Dedicated leaderboard screen
-The client SHALL display a full-screen leaderboard view accessible from the landing page and the results screen. The screen SHALL show up to 20 entries with rank number, player name, score, stage reached, time achieved, and a remove button per row.
+The client SHALL display a full-screen leaderboard view accessible from the landing page, the results screen, and the registration screen. The screen SHALL show up to 20 entries with rank number, player name, score, stage reached, time achieved, and a remove button per row.
 
 #### Scenario: Navigate to leaderboard from landing page
 - **WHEN** the user clicks the "Leaderboard" button on the landing page
@@ -13,9 +13,18 @@ The client SHALL display a full-screen leaderboard view accessible from the land
 - **THEN** the client transitions to the leaderboard screen
 - **AND** the mode tab is pre-selected to match the mode of the just-completed match
 
+#### Scenario: Navigate to leaderboard from registration screen
+- **WHEN** the user clicks the "Leaderboard" button on the registration screen
+- **THEN** the client transitions to the leaderboard screen
+- **AND** fetches rankings from `GET /api/leaderboard?mode=campaign` (default mode)
+
 #### Scenario: Return from leaderboard
 - **WHEN** the user clicks the "Back" button on the leaderboard screen
-- **THEN** the client transitions back to the previous screen (landing or results)
+- **THEN** the client transitions back to the previous screen (landing, results, or registration)
+
+#### Scenario: Return from leaderboard to registration
+- **WHEN** the user clicks the "Back" button on the leaderboard screen after navigating from registration
+- **THEN** the client transitions back to the registration screen
 
 #### Scenario: Each entry row includes a remove action
 - **WHEN** the leaderboard screen renders entries
